@@ -1,0 +1,744 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// CORE ENTITIES
+// =============================================
+
+model User {
+  id                    String    @id @default(cuid())
+  username              String    @unique @db.VarChar(50)
+  email                 String    @unique @db.VarChar(255)
+  passwordHash          String    @map("password_hash") @db.VarChar(255)
+  firstName             String?   @map("first_name") @db.VarChar(100)
+  lastName              String?   @map("last_name") @db.VarChar(100)
+  profileImageUrl       String?   @map("profile_image_url") @db.VarChar(500)
+  bio                   String?   @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+  lastLoginAt           DateTime? @map("last_login_at")
+  isActive              Boolean   @default(true) @map("is_active")
+  emailVerified         Boolean   @default(false) @map("email_verified")
+
+  // Relations
+  createdTutorials               Tutorial[]
+  tutorialProgress               UserTutorialProgress[]
+  topicProgress                  UserTopicProgress[]
+  problemAttempts                UserProblemAttempt[]
+  challengeSubmissions           UserChallengeSubmission[]
+  contestParticipations          UserContestParticipation[]
+  certificates                   UserCertificate[]
+  applications                   UserApplication[]
+  sessions                       UserSession[]
+  auditLogs                      AuditLog[]
+  createdProblems                Problem[]
+  createdSolutions               Solution[]
+  createdChallenges              Challenge[]
+  createdContests                Contest[]
+  reviewedChallengeSubmissions   UserChallengeSubmission[] @relation("ReviewedBy")
+
+  @@index([username])
+  @@index([email])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Company {
+  id           String     @id @default(cuid())
+  name         String     @db.VarChar(255)
+  description  String?    @db.Text
+  websiteUrl   String?    @map("website_url") @db.VarChar(500)
+  logoUrl      String?    @map("logo_url") @db.VarChar(500)
+  industry     String?    @db.VarChar(100)
+  sizeCategory SizeCategory? @map("size_category")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
+  isActive     Boolean    @default(true) @map("is_active")
+
+  // Relations
+  hiringProcesses HiringProcess[]
+
+  @@index([name])
+  @@index([industry])
+  @@map("companies")
+}
+
+model Technology {
+  id          String              @id @default(cuid())
+  name        String              @unique @db.VarChar(100)
+  description String?             @db.Text
+  category    TechnologyCategory?
+  logoUrl     String?             @map("logo_url") @db.VarChar(500)
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  tutorialTechnologies      TutorialTechnology[]
+  challengeTechnologies     ChallengeTechnology[]
+  hiringProcessSkills       HiringProcessSkill[]
+
+  @@index([name])
+  @@index([category])
+  @@map("technologies")
+}
+
+// =============================================
+// LEARNING CONTENT STRUCTURE
+// =============================================
+
+model Tutorial {
+  id                    String           @id @default(cuid())
+  name                  String           @db.VarChar(255)
+  description           String?          @db.Text
+  difficultyLevel       DifficultyLevel? @map("difficulty_level")
+  estimatedDurationHours Int?            @map("estimated_duration_hours")
+  thumbnailUrl          String?          @map("thumbnail_url") @db.VarChar(500)
+  isPublished           Boolean          @default(false) @map("is_published")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at")
+  createdBy             String?          @map("created_by")
+
+  // Relations
+  creator               User?                      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  technologies          TutorialTechnology[]
+  topics                Topic[]
+  userProgress          UserTutorialProgress[]
+
+  @@index([name])
+  @@index([difficultyLevel])
+  @@index([isPublished])
+  @@map("tutorials")
+}
+
+model TutorialTechnology {
+  tutorialId   String  @map("tutorial_id")
+  technologyId String  @map("technology_id")
+  isPrimary    Boolean @default(false) @map("is_primary")
+
+  // Relations
+  tutorial   Tutorial   @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([tutorialId, technologyId])
+  @@map("tutorial_technologies")
+}
+
+model Topic {
+  id                      String      @id @default(cuid())
+  tutorialId              String      @map("tutorial_id")
+  name                    String      @db.VarChar(255)
+  description             String?     @db.Text
+  orderIndex              Int         @map("order_index")
+  estimatedDurationMinutes Int?       @map("estimated_duration_minutes")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  tutorial      Tutorial               @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  methods       Method[]
+  problems      Problem[]
+  userProgress  UserTopicProgress[]
+
+  @@unique([tutorialId, orderIndex], name: "unique_tutorial_order")
+  @@index([tutorialId, orderIndex])
+  @@map("topics")
+}
+
+model Method {
+  id              String   @id @default(cuid())
+  topicId         String   @map("topic_id")
+  name            String   @db.VarChar(255)
+  description     String?  @db.Text
+  syntaxPattern   String?  @map("syntax_pattern") @db.VarChar(500)
+  complexityNote  String?  @map("complexity_note") @db.Text
+  orderIndex      Int      @map("order_index")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  topic    Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  examples Example[]
+
+  @@unique([topicId, orderIndex], name: "unique_topic_order")
+  @@index([topicId, orderIndex])
+  @@map("methods")
+}
+
+model Example {
+  id           String   @id @default(cuid())
+  methodId     String   @map("method_id")
+  title        String?  @db.VarChar(255)
+  codeSnippet  String   @map("code_snippet") @db.Text
+  explanation  String?  @db.Text
+  language     String   @db.VarChar(50)
+  orderIndex   Int      @map("order_index")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  method Method @relation(fields: [methodId], references: [id], onDelete: Cascade)
+
+  @@unique([methodId, orderIndex], name: "unique_method_order")
+  @@index([methodId, language])
+  @@map("examples")
+}
+
+// =============================================
+// PRACTICE & ASSESSMENT
+// =============================================
+
+model Problem {
+  id                String             @id @default(cuid())
+  topicId           String             @map("topic_id")
+  title             String             @db.VarChar(255)
+  description       String             @db.Text
+  difficultyLevel   ProblemDifficulty? @map("difficulty_level")
+  timeLimitMinutes  Int?               @map("time_limit_minutes")
+  memoryLimitMb     Int?               @map("memory_limit_mb")
+  sampleInput       String?            @map("sample_input") @db.Text
+  sampleOutput      String?            @map("sample_output") @db.Text
+  constraints       String?            @db.Text
+  orderIndex        Int                @map("order_index")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
+  createdBy         String?            @map("created_by")
+
+  // Relations
+  topic             Topic                 @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  testCases         TestCase[]
+  creator           User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  suggestions       ProblemSuggestion[]
+  solutions         Solution[]
+  userAttempts      UserProblemAttempt[]
+  contestProblems   ContestProblem[]
+  contestSubmissions ContestSubmission[]
+
+  @@index([topicId, difficultyLevel])
+  @@index([difficultyLevel])
+  @@unique([topicId, orderIndex])
+  @@map("problems")
+}
+
+model TestCase {
+  id        String @id @default(cuid())
+  problemId String @map("problem_id")
+  input     String
+  output    String
+  isHidden  Boolean @default(false) @map("is_hidden")
+  orderIndex Int  @map("order_index")
+
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, orderIndex])
+  @@map("test_cases")
+}
+
+model ProblemSuggestion {
+  id                  String   @id @default(cuid())
+  problemId           String   @map("problem_id")
+  suggestionText      String   @map("suggestion_text") @db.Text
+  orderIndex          Int      @map("order_index")
+  revealAfterAttempts Int      @default(3) @map("reveal_after_attempts")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  // Relations
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, orderIndex], name: "unique_problem_order")
+  @@map("problem_suggestions")
+}
+
+model Solution {
+  id               String   @id @default(cuid())
+  problemId        String   @map("problem_id")
+  title            String?  @db.VarChar(255)
+  code             String   @db.Text
+  explanation      String?  @db.Text
+  language         String   @db.VarChar(50)
+  timeComplexity   String?  @map("time_complexity") @db.VarChar(100)
+  spaceComplexity  String?  @map("space_complexity") @db.VarChar(100)
+  isOptimal        Boolean  @default(false) @map("is_optimal")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String?  @map("created_by")
+
+  // Relations
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  creator User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([problemId, language])
+  @@map("solutions")
+}
+
+// =============================================
+// CHALLENGES & CONTESTS
+// =============================================
+
+model Challenge {
+  id                    String           @id @default(cuid())
+  title                 String           @db.VarChar(255)
+  description           String           @db.Text
+  requirements          String?          @db.Text
+  difficultyLevel       DifficultyLevel? @map("difficulty_level")
+  estimatedDurationHours Int?            @map("estimated_duration_hours")
+  maxAttempts           Int?             @map("max_attempts")
+  deadline              DateTime?
+  isActive              Boolean          @default(true) @map("is_active")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at")
+  createdBy             String?          @map("created_by")
+
+  // Relations
+  creator             User?                       @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  technologies        ChallengeTechnology[]
+  userSubmissions     UserChallengeSubmission[]
+
+  @@index([difficultyLevel, isActive])
+  @@index([deadline])
+  @@map("challenges")
+}
+
+model ChallengeTechnology {
+  challengeId  String  @map("challenge_id")
+  technologyId String  @map("technology_id")
+  isRequired   Boolean @default(true) @map("is_required")
+
+  // Relations
+  challenge  Challenge  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, technologyId])
+  @@map("challenge_technologies")
+}
+
+model Contest {
+  id                   String       @id @default(cuid())
+  title                String       @db.VarChar(255)
+  description          String?      @db.Text
+  contestType          ContestType? @map("contest_type")
+  startTime            DateTime     @map("start_time")
+  endTime              DateTime     @map("end_time")
+  maxParticipants      Int?         @map("max_participants")
+  isPublic             Boolean      @default(true) @map("is_public")
+  registrationDeadline DateTime?    @map("registration_deadline")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @default(now()) @updatedAt @map("updated_at")
+  createdBy            String?      @map("created_by")
+
+  // Relations
+  creator       User?                      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  problems      ContestProblem[]
+  participants  UserContestParticipation[]
+
+  @@index([startTime])
+  @@index([contestType])
+  @@index([isPublic])
+  @@map("contests")
+}
+
+model ContestProblem {
+  contestId  String @map("contest_id")
+  problemId  String @map("problem_id")
+  points     Int    @default(100)
+  orderIndex Int    @map("order_index")
+
+  // Relations
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@id([contestId, problemId])
+  @@unique([contestId, orderIndex], name: "unique_contest_order")
+  @@map("contest_problems")
+}
+
+// =============================================
+// USER PROGRESS & ACHIEVEMENTS
+// =============================================
+
+model UserTutorialProgress {
+  id                 String         @id @default(cuid())
+  userId             String         @map("user_id")
+  tutorialId         String         @map("tutorial_id")
+  status             ProgressStatus @default(not_started)
+  progressPercentage Decimal        @default(0.00) @map("progress_percentage") @db.Decimal(5, 2)
+  startedAt          DateTime       @default(now()) @map("started_at")
+  completedAt        DateTime?      @map("completed_at")
+  lastAccessedAt     DateTime       @default(now()) @updatedAt @map("last_accessed_at")
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tutorialId], name: "unique_user_tutorial")
+  @@index([userId, status])
+  @@index([progressPercentage])
+  @@index([userId, status, lastAccessedAt])
+  @@map("user_tutorial_progress")
+}
+
+model UserTopicProgress {
+  id               String         @id @default(cuid())
+  userId           String         @map("user_id")
+  topicId          String         @map("topic_id")
+  status           ProgressStatus @default(not_started)
+  completedAt      DateTime?      @map("completed_at")
+  timeSpentMinutes Int            @default(0) @map("time_spent_minutes")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId], name: "unique_user_topic")
+  @@index([userId, status])
+  @@map("user_topic_progress")
+}
+
+model UserProblemAttempt {
+  id               String           @id @default(cuid())
+  userId           String           @map("user_id")
+  problemId        String           @map("problem_id")
+  codeSubmission   String?          @map("code_submission") @db.Text
+  language         String?          @db.VarChar(50)
+  status           SubmissionStatus?
+  attemptNumber    Int              @map("attempt_number")
+  executionTime    Int?             @map("execution_time_ms")
+  memoryUsedMb     Decimal?         @map("memory_used_mb") @db.Decimal(8, 2)
+  testCasesPassed  Int              @default(0) @map("test_cases_passed")
+  totalTestCases   Int              @default(0) @map("total_test_cases")
+  aiFeedback       String?          @map("ai_feedback")
+  submittedAt      DateTime         @default(now()) @map("submitted_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, problemId])
+  @@index([status])
+  @@index([submittedAt])
+  @@map("user_problem_attempts")
+}
+
+model UserChallengeSubmission {
+  id            String                      @id @default(cuid())
+  userId        String                      @map("user_id")
+  challengeId   String                      @map("challenge_id")
+  submissionUrl String?                     @map("submission_url") @db.VarChar(500)
+  description   String?                     @db.Text
+  status        ChallengeSubmissionStatus?
+  score         Decimal?                    @db.Decimal(5, 2)
+  feedback      String?                     @db.Text
+  submittedAt   DateTime                    @default(now()) @map("submitted_at")
+  reviewedAt    DateTime?                   @map("reviewed_at")
+  reviewedBy    String?                     @map("reviewed_by")
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  reviewer  User?     @relation("ReviewedBy", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, challengeId], name: "unique_user_challenge")
+  @@index([status])
+  @@index([score(sort: Desc)])
+  @@map("user_challenge_submissions")
+}
+
+model UserContestParticipation {
+  id            String              @id @default(cuid())
+  userId        String              @map("user_id")
+  contestId     String              @map("contest_id")
+  registeredAt  DateTime            @default(now()) @map("registered_at")
+  startedAt     DateTime?           @map("started_at")
+  finishedAt    DateTime?           @map("finished_at")
+  totalScore    Int                 @default(0) @map("total_score")
+  finalRank     Int?                @map("final_rank")
+  problemsSolved Int                @default(0) @map("problems_solved")
+
+  // Relations
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contest     Contest             @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  submissions ContestSubmission[]
+
+  @@unique([userId, contestId], name: "unique_user_contest")
+  @@index([contestId, finalRank])
+  @@index([userId, totalScore(sort: Desc)])
+  @@map("user_contest_participation")
+}
+
+model ContestSubmission {
+  id               String           @id @default(cuid())
+  participationId  String           @map("participation_id")
+  problemId        String           @map("problem_id")
+  codeSubmission   String           @map("code_submission") @db.Text
+  language         String           @db.VarChar(50)
+  status           SubmissionStatus?
+  score            Int              @default(0)
+  executionTimeMs  Int?             @map("execution_time_ms")
+  submittedAt      DateTime         @default(now()) @map("submitted_at")
+
+  // Relations
+  participation UserContestParticipation @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  problem       Problem                  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([participationId, problemId])
+  @@index([status])
+  @@map("contest_submissions")
+}
+
+// =============================================
+// CERTIFICATES & ACHIEVEMENTS
+// =============================================
+
+model CertificateType {
+  id               String          @id @default(cuid())
+  name             String          @db.VarChar(255)
+  description      String?         @db.Text
+  certificateType  CertificateTypeEnum @map("certificate_type")
+  templateUrl      String?         @map("template_url") @db.VarChar(500)
+  requirementsJson Json?           @map("requirements_json")
+  isActive         Boolean         @default(true) @map("is_active")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  userCertificates UserCertificate[]
+
+  @@index([certificateType, isActive])
+  @@map("certificate_types")
+}
+
+model UserCertificate {
+  id                 String         @id @default(cuid())
+  userId             String         @map("user_id")
+  certificateTypeId  String         @map("certificate_type_id")
+  referenceId        String?        @map("reference_id")
+  referenceType      ReferenceType?  @map("reference_type")
+  certificateUrl     String?        @map("certificate_url") @db.VarChar(500)
+  verificationCode   String         @unique @map("verification_code") @db.VarChar(100)
+  issuedAt           DateTime       @default(now()) @map("issued_at")
+  expiresAt          DateTime?      @map("expires_at")
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificateType CertificateType @relation(fields: [certificateTypeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, issuedAt(sort: Desc)])
+  @@index([verificationCode])
+  @@index([referenceType, referenceId])
+  @@index([userId, referenceType, issuedAt(sort: Desc)])
+  @@map("user_certificates")
+}
+
+// =============================================
+// COMPANY INTEGRATION & HIRING
+// =============================================
+
+model HiringProcess {
+  id                  String    @id @default(cuid())
+  companyId           String    @map("company_id")
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  requirements        String?   @db.Text
+  jobType             JobType?  @map("job_type")
+  location            String?   @db.VarChar(255)
+  isRemote            Boolean   @default(false) @map("is_remote")
+  salaryRangeMin      Int?      @map("salary_range_min")
+  salaryRangeMax      Int?      @map("salary_range_max")
+  currency            String    @default("USD") @db.VarChar(3)
+  applicationDeadline DateTime? @map("application_deadline")
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  company      Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  skills       HiringProcessSkill[]
+  applications UserApplication[]
+
+  @@index([companyId, isActive])
+  @@index([jobType])
+  @@index([applicationDeadline])
+  @@index([companyId, isActive, applicationDeadline(sort: Desc)])
+  @@map("hiring_processes")
+}
+
+model HiringProcessSkill {
+  hiringProcessId  String            @map("hiring_process_id")
+  technologyId     String            @map("technology_id")
+  proficiencyLevel ProficiencyLevel? @map("proficiency_level")
+  isRequired       Boolean           @default(true) @map("is_required")
+
+  // Relations
+  hiringProcess HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+  technology    Technology    @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([hiringProcessId, technologyId])
+  @@map("hiring_process_skills")
+}
+
+model UserApplication {
+  id                String            @id @default(cuid())
+  userId            String            @map("user_id")
+  hiringProcessId   String            @map("hiring_process_id")
+  status            ApplicationStatus?
+  coverLetter       String?           @map("cover_letter") @db.Text
+  resumeUrl         String?           @map("resume_url") @db.VarChar(500)
+  appliedAt         DateTime          @default(now()) @map("applied_at")
+  updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hiringProcess HiringProcess @relation(fields: [hiringProcessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hiringProcessId], name: "unique_user_application")
+  @@index([status])
+  @@index([appliedAt(sort: Desc)])
+  @@map("user_applications")
+}
+
+// =============================================
+// SYSTEM TABLES
+// =============================================
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  sessionToken String   @unique @map("session_token") @db.VarChar(255)
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken])
+  @@index([userId, isActive])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  action     String   @db.VarChar(100)
+  entityType String?  @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// =============================================
+// ENUMS
+// =============================================
+
+enum SizeCategory {
+  startup
+  small
+  medium
+  large
+  enterprise
+}
+
+enum TechnologyCategory {
+  language
+  framework
+  library
+  tool
+  database
+  other
+}
+
+enum DifficultyLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum ProblemDifficulty {
+  easy
+  medium
+  hard
+}
+
+enum ContestType {
+  interview_style
+  open_book
+  speed_coding
+  algorithm_contest
+}
+
+enum ProgressStatus {
+  not_started
+  in_progress
+  completed
+}
+
+enum SubmissionStatus {
+  pending
+  accepted
+  wrong_answer
+  time_limit
+  memory_limit
+  runtime_error
+  compile_error
+}
+
+enum ChallengeSubmissionStatus {
+  submitted
+  under_review
+  approved
+  rejected
+  needs_revision
+}
+
+enum CertificateTypeEnum {
+  tutorial_completion
+  challenge_completion
+  contest_achievement
+  skill_milestone
+}
+
+enum ReferenceType {
+  tutorial
+  challenge
+  contest
+  skill
+}
+
+enum JobType {
+  internship
+  entry_level
+  mid_level
+  senior_level
+}
+
+enum ProficiencyLevel {
+  basic
+  intermediate
+  advanced
+  expert
+}
+
+enum ApplicationStatus {
+  applied
+  under_review
+  interview_scheduled
+  accepted
+  rejected
+  withdrawn
+}

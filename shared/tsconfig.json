@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,                // Required for project references
+    "declaration": true,              // Emits .d.ts files for type sharing
+    "declarationMap": true,
+    "outDir": "dist",
+    "rootDir": ".",                   // or "src" if you add one
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "target": "ESNext",
+    "isolatedModules": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+}
