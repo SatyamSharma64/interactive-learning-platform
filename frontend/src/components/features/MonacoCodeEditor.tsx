@@ -1,5 +1,4 @@
-import { trpc } from '@/lib/trpc';
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 
@@ -7,73 +6,39 @@ interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   language: string;
-  problemId: string;
   height?: string;
   readOnly?: boolean;
   theme?: 'vs-dark' | 'light' | 'vs' | 'hc-black';
   fontSize?: number;
   minimap?: boolean;
   wordWrap?: 'off' | 'on' | 'wordWrapColumn' | 'bounded';
-  onRun?: () => void;
-  onSubmit?: () => void;
+  codeTemplate?: { templateCode: string } | null;
+  resetToTemplate?: () => void;
 }
 
 export interface CodeEditorRef {
-  editor: monaco.editor.IStandaloneCodeEditor | null;
+  resetToTemplate: () => void;
   formatCode: () => void;
-  runCode: () => void;
-  submitCode: () => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
-  resetToTemplate: () => void;
-  getValue: () => string;
-  setValue: (value: string) => void;
-  focus: () => void;
-  getSelection: () => monaco.ISelection | null;
-  setSelection: (selection: monaco.ISelection) => void;
+  getEditor: () => monaco.editor.IStandaloneCodeEditor | null;
 }
 
 export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
   value,
   onChange,
   language,
-  problemId,
   height = '400px',
   readOnly = false,
   theme = 'vs-dark',
   fontSize = 14,
   minimap = false,
   wordWrap = 'off',
-  onRun,
-  onSubmit,
+  codeTemplate,
 }, ref) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [languageId, setLanguageId] = useState<string>(language);
   const [isEditorReady, setIsEditorReady] = useState(false);
-
-  const { data: codeTemplate, isLoading } = trpc.problems.getCodeTemplateById.useQuery(
-    { 
-      problemId: problemId!, 
-      languageId: languageId! 
-    },
-    { enabled: !!problemId && !!languageId },
-  );
-
-  // Expose methods to parent component
-  useImperativeHandle(ref, () => ({
-    editor: editorRef.current,
-    formatCode,
-    runCode,
-    submitCode,
-    increaseFontSize,
-    decreaseFontSize,
-    resetToTemplate,
-    getValue: () => editorRef.current?.getValue() || '',
-    setValue: (newValue: string) => editorRef.current?.setValue(newValue),
-    focus: () => editorRef.current?.focus(),
-    getSelection: () => editorRef.current?.getSelection() || null,
-    setSelection: (selection: monaco.ISelection) => editorRef.current?.setSelection(selection),
-  }), []);
+  const [currentFontSize, setCurrentFontSize] = useState(fontSize);
 
   // Language mapping for Monaco Editor
   const getMonacoLanguage = (lang: string): string => {
@@ -105,13 +70,53 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
     return languageMap[lang.toLowerCase()] || 'plaintext';
   };
 
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    resetToTemplate: () => {
+      if (codeTemplate?.templateCode && editorRef.current) {
+        const editor = editorRef.current;
+        editor.setValue(codeTemplate.templateCode);
+        onChange(codeTemplate.templateCode);
+        editor.focus();
+        
+        // Position cursor at the end of template code or at a logical position
+        const model = editor.getModel();
+        if (model) {
+          const lineCount = model.getLineCount();
+          const lastLineLength = model.getLineLength(lineCount);
+          editor.setPosition({ lineNumber: lineCount, column: lastLineLength + 1 });
+        }
+      }
+    },
+    formatCode: () => {
+      if (editorRef.current) {
+        editorRef.current.trigger('keyboard', 'editor.action.formatDocument', {});
+      }
+    },
+    increaseFontSize: () => {
+      if (editorRef.current) {
+        const newSize = Math.min(currentFontSize + 1, 24);
+        setCurrentFontSize(newSize);
+        editorRef.current.updateOptions({ fontSize: newSize });
+      }
+    },
+    decreaseFontSize: () => {
+      if (editorRef.current) {
+        const newSize = Math.max(currentFontSize - 1, 10);
+        setCurrentFontSize(newSize);
+        editorRef.current.updateOptions({ fontSize: newSize });
+      }
+    },
+    getEditor: () => editorRef.current,
+  }));
+
   const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
     setIsEditorReady(true);
 
     // Configure editor options
     editor.updateOptions({
-      fontSize: fontSize,
+      fontSize: currentFontSize,
       fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
       lineHeight: 20,
       minimap: { enabled: minimap },
@@ -143,20 +148,24 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
       hover: { enabled: true },
       contextmenu: true,
       mouseWheelZoom: true,
+      renderWhitespace: 'selection',
+      renderControlCharacters: true,
     });
 
     // Add custom key bindings
     editor.addCommand(monaco.KeyCode.F5, () => {
-      runCode();
+      // Custom F5 handler - could trigger code execution
+      console.log('F5 pressed - Run code');
     });
 
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      submitCode();
+      // Ctrl/Cmd + Enter - could trigger submission
+      console.log('Ctrl+Enter pressed - Submit code');
     });
 
     // Add format document command
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, () => {
-      formatCode();
+      editor.trigger('keyboard', 'editor.action.formatDocument', {});
     });
 
     // Configure language-specific settings
@@ -278,6 +287,13 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
             'print = sys.stdout.write'
           ].join('\n'),
           documentation: 'Fast I/O for competitive programming'
+        },
+        {
+          label: 'list_comprehension',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: '[${1:expression} for ${2:item} in ${3:iterable}]',
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          documentation: 'List comprehension template'
         }
       ],
       javascript: [
@@ -297,6 +313,37 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
           ].join('\n'),
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: 'Node.js readline template'
+        },
+        {
+          label: 'arrow_function',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: '(${1:params}) => ${2:expression}',
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          documentation: 'Arrow function template'
+        }
+      ],
+      java: [
+        {
+          label: 'main',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            'public static void main(String[] args) {',
+            '    ${1:// Your code here}',
+            '}'
+          ].join('\n'),
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          documentation: 'Main method template'
+        },
+        {
+          label: 'scanner',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            'Scanner sc = new Scanner(System.in);',
+            '${1:// Read input}',
+            'sc.close();'
+          ].join('\n'),
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          documentation: 'Scanner input template'
         }
       ]
     };
@@ -306,15 +353,18 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
       const monacoLang = getMonacoLanguage(lang);
       monaco.languages.registerCompletionItemProvider(monacoLang, {
         provideCompletionItems: (model, position) => {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
+
           return {
             suggestions: snippets.map(snippet => ({
               ...snippet,
-              range: {
-                startLineNumber: position.lineNumber,
-                endLineNumber: position.lineNumber,
-                startColumn: position.column,
-                endColumn: position.column,
-              },
+              range,
             }))
           };
         }
@@ -322,10 +372,13 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
     });
   };
 
+  // Internal functions for toolbar buttons
   const resetToTemplate = () => {
     if (codeTemplate?.templateCode && editorRef.current) {
-      editorRef.current.setValue(codeTemplate.templateCode);
-      editorRef.current.focus();
+      const editor = editorRef.current;
+      editor.setValue(codeTemplate.templateCode);
+      onChange(codeTemplate.templateCode);
+      editor.focus();
     }
   };
 
@@ -335,41 +388,25 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
     }
   };
 
-  const runCode = () => {
-    if (onRun) {
-      onRun();
-    } else {
-      console.log('F5 pressed - Run code');
-    }
-  };
-
-  const submitCode = () => {
-    if (onSubmit) {
-      onSubmit();
-    } else {
-      console.log('Ctrl+Enter pressed - Submit code');
-    }
-  };
-
   const increaseFontSize = () => {
     if (editorRef.current) {
-      const currentSize = editorRef.current.getOptions().get(monaco.editor.EditorOption.fontSize);
-      editorRef.current.updateOptions({ fontSize: Math.min(currentSize + 1, 24) });
+      const newSize = Math.min(currentFontSize + 1, 24);
+      setCurrentFontSize(newSize);
+      editorRef.current.updateOptions({ fontSize: newSize });
     }
   };
 
   const decreaseFontSize = () => {
     if (editorRef.current) {
-      const currentSize = editorRef.current.getOptions().get(monaco.editor.EditorOption.fontSize);
-      editorRef.current.updateOptions({ fontSize: Math.max(currentSize - 1, 10) });
+      const newSize = Math.max(currentFontSize - 1, 10);
+      setCurrentFontSize(newSize);
+      editorRef.current.updateOptions({ fontSize: newSize });
     }
   };
 
-  // Get initial value - prioritize template if available and no current value
+  // Get initial value - prioritize current value over template
   const getInitialValue = () => {
-    if (value) return value;
-    if (codeTemplate?.templateCode) return codeTemplate.templateCode;
-    return '';
+    return value || '';
   };
 
   return (
@@ -412,6 +449,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
             >
               -
             </button>
+            <span className="text-xs text-slate-400 w-6 text-center">{currentFontSize}</span>
             <button
               onClick={increaseFontSize}
               className="w-6 h-6 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors flex items-center justify-center"
@@ -428,7 +466,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
         <Editor
           height={height}
           defaultLanguage={getMonacoLanguage(language)}
-          language={getMonacoLanguage(languageId)}
+          language={getMonacoLanguage(language)}
           value={getInitialValue()}
           theme="coding-dark"
           onChange={handleEditorChange}
@@ -444,7 +482,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
           }
           options={{
             readOnly,
-            fontSize: fontSize,
+            fontSize: currentFontSize,
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
             minimap: { enabled: minimap },
             scrollBeyondLastLine: false,
@@ -464,18 +502,13 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
         <div className="flex items-center space-x-4">
           <span>Lines: {value.split('\n').length}</span>
           <span>Characters: {value.length}</span>
-          {isLoading && (
-            <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <span>Loading template...</span>
-            </span>
-          )}
+          <span>Words: {value.trim() ? value.trim().split(/\s+/).length : 0}</span>
         </div>
         
         <div className="flex items-center space-x-4">
           <span>UTF-8</span>
           <span>{getMonacoLanguage(language)}</span>
-          <span>Ln {editorRef.current?.getPosition()?.lineNumber || 1}</span>
+          <span>Ln {editorRef.current?.getPosition()?.lineNumber || 1}, Col {editorRef.current?.getPosition()?.column || 1}</span>
         </div>
       </div>
     </div>

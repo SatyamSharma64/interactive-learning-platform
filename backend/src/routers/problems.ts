@@ -5,6 +5,7 @@ import { AIService, type CodeAnalysisResponse } from '../services/aiService.js';
 import axios from 'axios';
 // import { SubmissionStatus } from '@prisma/client';
 import { wsService } from '../index.js';
+import { CodeTemplateService } from '../services/templateManagementService.js';
 // import {
 //   ProblemQueryInput,
 //   ProblemListItem,
@@ -127,22 +128,130 @@ export const problemsRouter = router({
         where: { id: input.id },
         include: {
           testCases: true,
+          codeTemplates: { where: { languageId: 'lang1' } },
           suggestions: { orderBy: { orderIndex: 'asc' } },
           solutions: { where: { isOptimal: true } },
         },
       });
     }),
 
+    getCodeTemplateById: protectedProcedure
+    .input(z.object({
+      problemId: z.string(),
+      languageId: z.string()
+    }))
+    .query(async ({ input, ctx }) => {
+      return await ctx.prisma.codeTemplate.findUnique({
+        where: {
+          problemId_languageId: {
+            problemId: input.problemId,
+            languageId: input.languageId,
+          },
+        },
+      });
+    }),
+
+    getAvailableProgrammingLanguages: protectedProcedure
+    .query(async ({ ctx }) => {
+      return await ctx.prisma.programmingLanguage.findMany({
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          isActive: true,
+        },
+      });
+    }),
+
+  testCode: protectedProcedure
+    .input(z.object({
+      code: z.string(),
+      languageId: z.string(),
+      input: z.string().optional(),
+      problemId: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { code, languageId, problemId } = input;
+      const userId = ctx.user.id;
+
+      // Emit execution started event
+      const requestId = `${userId}-${Date.now()}`;
+      // wsService.emitExecutionStarted(userId, requestId);
+      try {
+        // Fetch code template if available
+        const codeTemplate = await ctx.prisma.codeTemplate.findUnique({
+          where: { 
+            problemId_languageId: { problemId, languageId } 
+          },
+          include: {
+            parameters: {
+              orderBy: { orderIndex: 'asc' }
+            }
+          }
+        });
+
+        if (!codeTemplate) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Code template not found for this problem and language' });
+        }
+
+        const templateService = new CodeTemplateService(ctx.prisma);
+        // Build the complete code with template
+        const fullCode = templateService.buildFullScript(codeTemplate, code);
+
+        const language = await ctx.prisma.programmingLanguage.findUnique({
+          where: { id: languageId },
+        });
+
+        const testCases = await ctx.prisma.testCase.findMany({
+          where: { problemId, isSample: true },
+          orderBy: { orderIndex: 'asc' },
+        })
+        // Send execution request to the execution service
+        const executionResponse = await axios.post('http://localhost:3001/api/execute', {
+          code: fullCode,
+          language: language?.name || 'python',
+          testCases: testCases.map((tc: any) => ({
+            input: tc.input,
+            output: tc.expectedOutput,
+          })),
+        });
+
+        const { allPassed, totalExecutionTime, testResults } = executionResponse.data;
+
+        // let status = allPassed ? 'ACCEPTED' : 'WRONG_ANSWER';
+
+        const result = {
+          success: allPassed,
+          testResults,
+          executionTime: totalExecutionTime,
+        };
+
+
+        // wsService.emitExecutionCompleted(userId, requestId, response.data);
+        console.log('Execution result:', result);
+        return result;
+      } catch (error: any) {
+        console.error('Execution error:', error);
+        // wsService.emitExecutionError(userId, requestId, error.message);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+      }
+    }),
+
+
+
   submitSolution: protectedProcedure
     .input(z.object({
       problemId: z.string(),
       code: z.string(),
-      language: z.string(),
+      languageId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const { problemId, code, language } = input;
+      const { problemId, code, languageId } = input;
       const userId = ctx.user.id;
 
+      const language = await ctx.prisma.programmingLanguage.findUnique({
+        where: { id: languageId },
+      });
       // Emit execution started event
       const requestId = `${userId}-${Date.now()}`;
       wsService.emitExecutionStarted(userId, requestId);
@@ -166,10 +275,10 @@ export const problemsRouter = router({
 
         const executionResponse = await axios.post('http://localhost:3001/validate', {
           code,
-          language,
+          language: language?.name || 'python',
           testCases: problem.testCases.map((tc: any) => ({
             input: tc.input,
-            output: tc.output,
+            output: tc.expectedOutput,
           })),
         });
 
@@ -184,10 +293,10 @@ export const problemsRouter = router({
           data: {
             userId,
             problemId,
-            code,
-            language,
+            codeSubmission: code,
+            languageId: languageId,
             status: status as any,
-            executionTime: totalExecutionTime,
+            executionTimeMs: totalExecutionTime,
             testCasesPassed: testResults.filter((r: any) => r.passed).length,
             totalTestCases: testResults.length,
             attemptNumber: currentAttempt,
@@ -202,7 +311,7 @@ export const problemsRouter = router({
           aiService.analyzeFailedCode({
             problemDescription: problem.description,
             userCode: code,
-            language,
+            language: language?.name || 'python',
             testResults,
             attemptNumber: currentAttempt,
           }).then(analysis => {
@@ -237,7 +346,7 @@ export const problemsRouter = router({
             userId: ctx.user.id,
             problemId: input.problemId,
             codeSubmission: input.code,
-            language: input.language,
+            languageId: input.languageId,
             status: 'runtime_error',
             attemptNumber: currentAttempt,
             aiFeedback: JSON.stringify({

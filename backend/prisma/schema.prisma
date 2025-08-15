@@ -12,36 +12,36 @@ datasource db {
 // =============================================
 
 model User {
-  id                    String    @id @default(cuid())
-  username              String    @unique @db.VarChar(50)
-  email                 String    @unique @db.VarChar(255)
-  passwordHash          String    @map("password_hash") @db.VarChar(255)
-  firstName             String?   @map("first_name") @db.VarChar(100)
-  lastName              String?   @map("last_name") @db.VarChar(100)
-  profileImageUrl       String?   @map("profile_image_url") @db.VarChar(500)
-  bio                   String?   @db.Text
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
-  lastLoginAt           DateTime? @map("last_login_at")
-  isActive              Boolean   @default(true) @map("is_active")
-  emailVerified         Boolean   @default(false) @map("email_verified")
+  id              String    @id @default(cuid())
+  username        String    @unique @db.VarChar(50)
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  firstName       String?   @map("first_name") @db.VarChar(100)
+  lastName        String?   @map("last_name") @db.VarChar(100)
+  profileImageUrl String?   @map("profile_image_url") @db.VarChar(500)
+  bio             String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  emailVerified   Boolean   @default(false) @map("email_verified")
 
   // Relations
-  createdTutorials               Tutorial[]
-  tutorialProgress               UserTutorialProgress[]
-  topicProgress                  UserTopicProgress[]
-  problemAttempts                UserProblemAttempt[]
-  challengeSubmissions           UserChallengeSubmission[]
-  contestParticipations          UserContestParticipation[]
-  certificates                   UserCertificate[]
-  applications                   UserApplication[]
-  sessions                       UserSession[]
-  auditLogs                      AuditLog[]
-  createdProblems                Problem[]
-  createdSolutions               Solution[]
-  createdChallenges              Challenge[]
-  createdContests                Contest[]
-  reviewedChallengeSubmissions   UserChallengeSubmission[] @relation("ReviewedBy")
+  createdTutorials             Tutorial[]
+  tutorialProgress             UserTutorialProgress[]
+  topicProgress                UserTopicProgress[]
+  problemAttempts              UserProblemAttempt[]
+  challengeSubmissions         UserChallengeSubmission[]
+  contestParticipations        UserContestParticipation[]
+  certificates                 UserCertificate[]
+  applications                 UserApplication[]
+  sessions                     UserSession[]
+  auditLogs                    AuditLog[]
+  createdProblems              Problem[]
+  createdSolutions             Solution[]
+  createdChallenges            Challenge[]
+  createdContests              Contest[]
+  reviewedChallengeSubmissions UserChallengeSubmission[]  @relation("ReviewedBy")
 
   @@index([username])
   @@index([email])
@@ -50,16 +50,16 @@ model User {
 }
 
 model Company {
-  id           String     @id @default(cuid())
-  name         String     @db.VarChar(255)
-  description  String?    @db.Text
-  websiteUrl   String?    @map("website_url") @db.VarChar(500)
-  logoUrl      String?    @map("logo_url") @db.VarChar(500)
-  industry     String?    @db.VarChar(100)
+  id           String        @id @default(cuid())
+  name         String        @db.VarChar(255)
+  description  String?       @db.Text
+  websiteUrl   String?       @map("website_url") @db.VarChar(500)
+  logoUrl      String?       @map("logo_url") @db.VarChar(500)
+  industry     String?       @db.VarChar(100)
   sizeCategory SizeCategory? @map("size_category")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
-  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+  isActive     Boolean       @default(true) @map("is_active")
 
   // Relations
   hiringProcesses HiringProcess[]
@@ -78,9 +78,9 @@ model Technology {
   createdAt   DateTime            @default(now()) @map("created_at")
 
   // Relations
-  tutorialTechnologies      TutorialTechnology[]
-  challengeTechnologies     ChallengeTechnology[]
-  hiringProcessSkills       HiringProcessSkill[]
+  tutorialTechnologies  TutorialTechnology[]
+  challengeTechnologies ChallengeTechnology[]
+  hiringProcessSkills   HiringProcessSkill[]
 
   @@index([name])
   @@index([category])
@@ -88,26 +88,145 @@ model Technology {
 }
 
 // =============================================
+// DOMAIN & CATEGORY MANAGEMENT
+// =============================================
+
+model Domain {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(100) // e.g., "Data Structures & Algorithms", "Web Development", "Machine Learning"
+  slug        String   @unique @db.VarChar(100) // e.g., "dsa", "web-dev", "ml"
+  description String?  @db.Text
+  iconUrl     String?  @map("icon_url") @db.VarChar(500)
+  color       String?  @db.VarChar(7) // Hex color code
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  categories Category[]
+  problems   Problem[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("domains")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  domainId    String   @map("domain_id")
+  name        String   @db.VarChar(100) // e.g., "Arrays", "React Components", "Neural Networks"
+  slug        String   @db.VarChar(100)
+  description String?  @db.Text
+  orderIndex  Int      @map("order_index")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  domain   Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  problems Problem[]
+
+  @@unique([domainId, slug])
+  @@unique([domainId, orderIndex])
+  @@index([domainId, orderIndex])
+  @@map("categories")
+}
+
+// =============================================
+// PROGRAMMING LANGUAGES & EXECUTION
+// =============================================
+
+model ProgrammingLanguage {
+  id               String   @id @default(cuid())
+  name             String   @unique @db.VarChar(50) // e.g., "Python", "JavaScript", "SQL"
+  displayName      String   @map("display_name") @db.VarChar(50) // e.g., "Python 3.9", "Node.js 18"
+  fileExtension    String   @map("file_extension") @db.VarChar(10) // e.g., ".py", ".js", ".sql"
+  version          String?  @db.VarChar(20)
+  executionCommand String?  @map("execution_command") @db.Text // Command to execute the code
+  compileCommand   String?  @map("compile_command") @db.Text // For compiled languages
+  dockerImage      String?  @map("docker_image") @db.VarChar(255) // Docker image for execution
+  memoryLimitMb    Int      @default(256) @map("memory_limit_mb")
+  timeLimitSeconds Int      @default(10) @map("time_limit_seconds")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  codeTemplates      CodeTemplate[]
+  problemAttempts    UserProblemAttempt[]
+  solutions          Solution[]
+  examples           Example[]
+  contestSubmissions ContestSubmission[]
+  executionConfigs   ProblemExecutionConfig[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("programming_languages")
+}
+
+model CodeTemplate {
+  id              String   @id @default(cuid())
+  problemId       String   @map("problem_id")
+  languageId      String   @map("language_id")
+  templateCode    String   @map("template_code") @db.Text // Pre-written function signature
+  starterCode     String?  @map("starter_code") @db.Text // Basic implementation hints
+  helperCode      String?  @map("helper_code") @db.Text // Utility functions/classes
+  imports         String?  @db.Text // Required imports/includes
+  mainFunction    String?  @map("main_function") @db.Text // Main execution wrapper
+  testRunnerCode  String?  @map("test_runner_code") @db.Text // Code to run test cases
+  inputParser     String   @map("input_parser") @db.Text
+  outputFormatter String   @map("output_formatter") @db.Text
+  functionName    String   @map("function_name")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  problem    Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language   ProgrammingLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  parameters TemplateParameter[]
+
+  @@unique([problemId, languageId])
+  @@index([problemId])
+  @@index([languageId])
+  @@map("code_templates")
+}
+
+model TemplateParameter {
+  id          String        @id @default(cuid())
+  templateId  String        @map("template_id")
+  name        String
+  type        ParameterType
+  description String
+  parser      String?       @db.Text
+  orderIndex  Int           @map("order_index")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  // Relation
+  template CodeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, orderIndex])
+  @@index([templateId])
+  @@map("template_parameters")
+}
+
+// =============================================
 // LEARNING CONTENT STRUCTURE
 // =============================================
 
 model Tutorial {
-  id                    String           @id @default(cuid())
-  name                  String           @db.VarChar(255)
-  description           String?          @db.Text
-  difficultyLevel       DifficultyLevel? @map("difficulty_level")
-  estimatedDurationHours Int?            @map("estimated_duration_hours")
-  thumbnailUrl          String?          @map("thumbnail_url") @db.VarChar(500)
-  isPublished           Boolean          @default(false) @map("is_published")
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at")
-  createdBy             String?          @map("created_by")
+  id                     String           @id @default(cuid())
+  name                   String           @db.VarChar(255)
+  description            String?          @db.Text
+  difficultyLevel        DifficultyLevel? @map("difficulty_level")
+  estimatedDurationHours Int?             @map("estimated_duration_hours")
+  thumbnailUrl           String?          @map("thumbnail_url") @db.VarChar(500)
+  isPublished            Boolean          @default(false) @map("is_published")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @default(now()) @updatedAt @map("updated_at")
+  createdBy              String?          @map("created_by")
 
   // Relations
-  creator               User?                      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-  technologies          TutorialTechnology[]
-  topics                Topic[]
-  userProgress          UserTutorialProgress[]
+  creator      User?                  @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  technologies TutorialTechnology[]
+  topics       Topic[]
+  userProgress UserTutorialProgress[]
 
   @@index([name])
   @@index([difficultyLevel])
@@ -129,20 +248,20 @@ model TutorialTechnology {
 }
 
 model Topic {
-  id                      String      @id @default(cuid())
-  tutorialId              String      @map("tutorial_id")
-  name                    String      @db.VarChar(255)
-  description             String?     @db.Text
-  orderIndex              Int         @map("order_index")
-  estimatedDurationMinutes Int?       @map("estimated_duration_minutes")
-  createdAt               DateTime    @default(now()) @map("created_at")
-  updatedAt               DateTime    @default(now()) @updatedAt @map("updated_at")
+  id                       String   @id @default(cuid())
+  tutorialId               String   @map("tutorial_id")
+  name                     String   @db.VarChar(255)
+  description              String?  @db.Text
+  orderIndex               Int      @map("order_index")
+  estimatedDurationMinutes Int?     @map("estimated_duration_minutes")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  tutorial      Tutorial               @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
-  methods       Method[]
-  problems      Problem[]
-  userProgress  UserTopicProgress[]
+  tutorial     Tutorial            @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  methods      Method[]
+  problems     Problem[]
+  userProgress UserTopicProgress[]
 
   @@unique([tutorialId, orderIndex], name: "unique_tutorial_order")
   @@index([tutorialId, orderIndex])
@@ -150,15 +269,15 @@ model Topic {
 }
 
 model Method {
-  id              String   @id @default(cuid())
-  topicId         String   @map("topic_id")
-  name            String   @db.VarChar(255)
-  description     String?  @db.Text
-  syntaxPattern   String?  @map("syntax_pattern") @db.VarChar(500)
-  complexityNote  String?  @map("complexity_note") @db.Text
-  orderIndex      Int      @map("order_index")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  topicId        String   @map("topic_id")
+  name           String   @db.VarChar(255)
+  description    String?  @db.Text
+  syntaxPattern  String?  @map("syntax_pattern") @db.VarChar(500)
+  complexityNote String?  @map("complexity_note") @db.Text
+  orderIndex     Int      @map("order_index")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relations
   topic    Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
@@ -170,133 +289,239 @@ model Method {
 }
 
 model Example {
-  id           String   @id @default(cuid())
-  methodId     String   @map("method_id")
-  title        String?  @db.VarChar(255)
-  codeSnippet  String   @map("code_snippet") @db.Text
-  explanation  String?  @db.Text
-  language     String   @db.VarChar(50)
-  orderIndex   Int      @map("order_index")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  methodId    String   @map("method_id")
+  title       String?  @db.VarChar(255)
+  codeSnippet String   @map("code_snippet") @db.Text
+  explanation String?  @db.Text
+  languageId  String   @map("language_id")
+  orderIndex  Int      @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  method Method @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  method   Method              @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  language ProgrammingLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
 
   @@unique([methodId, orderIndex], name: "unique_method_order")
-  @@index([methodId, language])
+  @@index([methodId, languageId])
   @@map("examples")
 }
 
 // =============================================
-// PRACTICE & ASSESSMENT
+// ENHANCED PROBLEM SYSTEM
 // =============================================
 
 model Problem {
-  id                String             @id @default(cuid())
-  topicId           String             @map("topic_id")
-  title             String             @db.VarChar(255)
-  description       String             @db.Text
-  difficultyLevel   ProblemDifficulty? @map("difficulty_level")
-  timeLimitMinutes  Int?               @map("time_limit_minutes")
-  memoryLimitMb     Int?               @map("memory_limit_mb")
-  sampleInput       String?            @map("sample_input") @db.Text
-  sampleOutput      String?            @map("sample_output") @db.Text
-  constraints       String?            @db.Text
-  orderIndex        Int                @map("order_index")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
-  createdBy         String?            @map("created_by")
+  id               String             @id @default(cuid())
+  domainId         String             @map("domain_id")
+  categoryId       String?            @map("category_id")
+  topicId          String?            @map("topic_id") // Optional for non-tutorial problems
+  title            String             @db.VarChar(255)
+  slug             String             @unique @db.VarChar(255)
+  description      String             @db.Text
+  problemType      ProblemType        @default(algorithmic) @map("problem_type")
+  difficultyLevel  ProblemDifficulty? @map("difficulty_level")
+  timeLimitSeconds Int?               @map("time_limit_seconds")
+  memoryLimitMb    Int?               @map("memory_limit_mb")
+
+  // Enhanced problem content
+  problemStatement String  @map("problem_statement") @db.Text
+  inputFormat      String? @map("input_format") @db.Text
+  outputFormat     String? @map("output_format") @db.Text
+  constraints      String? @db.Text
+  notes            String? @db.Text
+  hints            String? @db.Text
+
+  // Metadata
+  tags            String[] // Array of tags for better searchability
+  companyTags     String[] @map("company_tags") // Companies that asked this problem
+  similarProblems String[] @map("similar_problems") // Array of problem IDs
+
+  // Ordering and status
+  orderIndex  Int?     @map("order_index")
+  isPublished Boolean  @default(false) @map("is_published")
+  isPremium   Boolean  @default(false) @map("is_premium")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
 
   // Relations
-  topic             Topic                 @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  testCases         TestCase[]
-  creator           User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-  suggestions       ProblemSuggestion[]
-  solutions         Solution[]
-  userAttempts      UserProblemAttempt[]
-  contestProblems   ContestProblem[]
+  domain             Domain                   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  category           Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topic              Topic?                   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  testCases          TestCase[]
+  codeTemplates      CodeTemplate[]
+  creator            User?                    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  suggestions        ProblemSuggestion[]
+  solutions          Solution[]
+  userAttempts       UserProblemAttempt[]
+  contestProblems    ContestProblem[]
   contestSubmissions ContestSubmission[]
+  executionConfigs   ProblemExecutionConfig[]
 
-  @@index([topicId, difficultyLevel])
+  @@index([domainId, categoryId])
+  @@index([problemType])
   @@index([difficultyLevel])
-  @@unique([topicId, orderIndex])
+  @@index([isPublished, isPremium])
+  @@index([topicId, orderIndex])
+  @@index([slug])
   @@map("problems")
 }
 
-model TestCase {
-  id        String @id @default(cuid())
-  problemId String @map("problem_id")
-  input     String
-  output    String
-  isHidden  Boolean @default(false) @map("is_hidden")
-  orderIndex Int  @map("order_index")
+model ProblemExecutionConfig {
+  id                  String   @id @default(cuid())
+  problemId           String   @map("problem_id")
+  languageId          String   @map("language_id")
+  timeLimitSeconds    Int?     @map("time_limit_seconds")
+  memoryLimitMb       Int?     @map("memory_limit_mb")
+  specialInstructions String?  @map("special_instructions") @db.Text
+  environmentVars     Json?    @map("environment_vars") // Environment variables for execution
+  customJudge         String?  @map("custom_judge") @db.Text // Custom judge code for special problems
+  createdAt           DateTime @default(now()) @map("created_at")
 
-  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  // Relations
+  problem  Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language ProgrammingLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, languageId])
+  @@map("problem_execution_configs")
+}
+
+model TestCase {
+  id             String   @id @default(cuid())
+  problemId      String   @map("problem_id")
+  input          String   @db.Text
+  expectedOutput String   @map("expected_output") @db.Text
+  explanation    String?  @db.Text
+  isHidden       Boolean  @default(false) @map("is_hidden")
+  isSample       Boolean  @default(false) @map("is_sample")
+  weight         Decimal  @default(1.0) @db.Decimal(3, 2) // For weighted scoring
+  testGroup      String?  @map("test_group") @db.VarChar(50) // Group similar test cases
+  orderIndex     Int      @map("order_index")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([problemId, orderIndex])
+  @@index([problemId, isHidden])
+  @@index([problemId, isSample])
   @@map("test_cases")
 }
 
 model ProblemSuggestion {
-  id                  String   @id @default(cuid())
-  problemId           String   @map("problem_id")
-  suggestionText      String   @map("suggestion_text") @db.Text
-  orderIndex          Int      @map("order_index")
-  revealAfterAttempts Int      @default(3) @map("reveal_after_attempts")
-  createdAt           DateTime @default(now()) @map("created_at")
+  id                  String         @id @default(cuid())
+  problemId           String         @map("problem_id")
+  suggestionText      String         @map("suggestion_text") @db.Text
+  suggestionType      SuggestionType @default(hint) @map("suggestion_type")
+  orderIndex          Int            @map("order_index")
+  revealAfterAttempts Int            @default(3) @map("reveal_after_attempts")
+  createdAt           DateTime       @default(now()) @map("created_at")
 
   // Relations
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([problemId, orderIndex], name: "unique_problem_order")
+  @@index([problemId, suggestionType])
   @@map("problem_suggestions")
 }
 
 model Solution {
-  id               String   @id @default(cuid())
-  problemId        String   @map("problem_id")
-  title            String?  @db.VarChar(255)
-  code             String   @db.Text
-  explanation      String?  @db.Text
-  language         String   @db.VarChar(50)
-  timeComplexity   String?  @map("time_complexity") @db.VarChar(100)
-  spaceComplexity  String?  @map("space_complexity") @db.VarChar(100)
-  isOptimal        Boolean  @default(false) @map("is_optimal")
-  createdAt        DateTime @default(now()) @map("created_at")
-  createdBy        String?  @map("created_by")
+  id              String   @id @default(cuid())
+  problemId       String   @map("problem_id")
+  languageId      String   @map("language_id")
+  title           String?  @db.VarChar(255)
+  code            String   @db.Text
+  explanation     String?  @db.Text
+  approach        String?  @db.Text // Algorithm approach explanation
+  timeComplexity  String?  @map("time_complexity") @db.VarChar(100)
+  spaceComplexity String?  @map("space_complexity") @db.VarChar(100)
+  isOptimal       Boolean  @default(false) @map("is_optimal")
+  isOfficial      Boolean  @default(false) @map("is_official")
+  voteScore       Int      @default(0) @map("vote_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String?  @map("created_by")
 
   // Relations
-  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  creator User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  problem  Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language ProgrammingLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  creator  User?               @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
-  @@index([problemId, language])
+  @@index([problemId, languageId])
+  @@index([problemId, isOfficial])
+  @@index([voteScore])
   @@map("solutions")
 }
 
 // =============================================
-// CHALLENGES & CONTESTS
+// ENHANCED USER ATTEMPTS & SUBMISSIONS
+// =============================================
+
+model UserProblemAttempt {
+  id             String            @id @default(cuid())
+  userId         String            @map("user_id")
+  problemId      String            @map("problem_id")
+  languageId     String            @map("language_id")
+  codeSubmission String            @map("code_submission") @db.Text
+  status         SubmissionStatus?
+  attemptNumber  Int               @map("attempt_number")
+
+  // Execution results
+  executionTimeMs Int?     @map("execution_time_ms")
+  memoryUsedMb    Decimal? @map("memory_used_mb") @db.Decimal(8, 2)
+  testCasesPassed Int      @default(0) @map("test_cases_passed")
+  totalTestCases  Int      @default(0) @map("total_test_cases")
+  score           Decimal? @db.Decimal(5, 2) // Percentage score
+
+  // Detailed results
+  testCaseResults Json?   @map("test_case_results") // Detailed test case results
+  compileError    String? @map("compile_error") @db.Text
+  runtimeError    String? @map("runtime_error") @db.Text
+
+  // AI feedback and hints
+  aiFeedback String? @map("ai_feedback") @db.Text
+  hintsUsed  Int     @default(0) @map("hints_used")
+
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  // Relations
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem  Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language ProgrammingLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, problemId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([userId, status])
+  @@map("user_problem_attempts")
+}
+
+// =============================================
+// CHALLENGES & CONTESTS (Enhanced)
 // =============================================
 
 model Challenge {
-  id                    String           @id @default(cuid())
-  title                 String           @db.VarChar(255)
-  description           String           @db.Text
-  requirements          String?          @db.Text
-  difficultyLevel       DifficultyLevel? @map("difficulty_level")
-  estimatedDurationHours Int?            @map("estimated_duration_hours")
-  maxAttempts           Int?             @map("max_attempts")
-  deadline              DateTime?
-  isActive              Boolean          @default(true) @map("is_active")
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at")
-  createdBy             String?          @map("created_by")
+  id                     String           @id @default(cuid())
+  title                  String           @db.VarChar(255)
+  description            String           @db.Text
+  challengeType          ChallengeType    @default(coding) @map("challenge_type")
+  requirements           String?          @db.Text
+  difficultyLevel        DifficultyLevel? @map("difficulty_level")
+  estimatedDurationHours Int?             @map("estimated_duration_hours")
+  maxAttempts            Int?             @map("max_attempts")
+  deadline               DateTime?
+  isActive               Boolean          @default(true) @map("is_active")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @default(now()) @updatedAt @map("updated_at")
+  createdBy              String?          @map("created_by")
 
   // Relations
-  creator             User?                       @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-  technologies        ChallengeTechnology[]
-  userSubmissions     UserChallengeSubmission[]
+  creator         User?                     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  technologies    ChallengeTechnology[]
+  userSubmissions UserChallengeSubmission[]
 
+  @@index([challengeType])
   @@index([difficultyLevel, isActive])
   @@index([deadline])
   @@map("challenges")
@@ -330,9 +555,9 @@ model Contest {
   createdBy            String?      @map("created_by")
 
   // Relations
-  creator       User?                      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-  problems      ContestProblem[]
-  participants  UserContestParticipation[]
+  creator      User?                      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  problems     ContestProblem[]
+  participants UserContestParticipation[]
 
   @@index([startTime])
   @@index([contestType])
@@ -397,43 +622,18 @@ model UserTopicProgress {
   @@map("user_topic_progress")
 }
 
-model UserProblemAttempt {
-  id               String           @id @default(cuid())
-  userId           String           @map("user_id")
-  problemId        String           @map("problem_id")
-  codeSubmission   String?          @map("code_submission") @db.Text
-  language         String?          @db.VarChar(50)
-  status           SubmissionStatus?
-  attemptNumber    Int              @map("attempt_number")
-  executionTime    Int?             @map("execution_time_ms")
-  memoryUsedMb     Decimal?         @map("memory_used_mb") @db.Decimal(8, 2)
-  testCasesPassed  Int              @default(0) @map("test_cases_passed")
-  totalTestCases   Int              @default(0) @map("total_test_cases")
-  aiFeedback       String?          @map("ai_feedback")
-  submittedAt      DateTime         @default(now()) @map("submitted_at")
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-
-  @@index([userId, problemId])
-  @@index([status])
-  @@index([submittedAt])
-  @@map("user_problem_attempts")
-}
-
 model UserChallengeSubmission {
-  id            String                      @id @default(cuid())
-  userId        String                      @map("user_id")
-  challengeId   String                      @map("challenge_id")
-  submissionUrl String?                     @map("submission_url") @db.VarChar(500)
-  description   String?                     @db.Text
+  id            String                     @id @default(cuid())
+  userId        String                     @map("user_id")
+  challengeId   String                     @map("challenge_id")
+  submissionUrl String?                    @map("submission_url") @db.VarChar(500)
+  description   String?                    @db.Text
   status        ChallengeSubmissionStatus?
-  score         Decimal?                    @db.Decimal(5, 2)
-  feedback      String?                     @db.Text
-  submittedAt   DateTime                    @default(now()) @map("submitted_at")
-  reviewedAt    DateTime?                   @map("reviewed_at")
-  reviewedBy    String?                     @map("reviewed_by")
+  score         Decimal?                   @db.Decimal(5, 2)
+  feedback      String?                    @db.Text
+  submittedAt   DateTime                   @default(now()) @map("submitted_at")
+  reviewedAt    DateTime?                  @map("reviewed_at")
+  reviewedBy    String?                    @map("reviewed_by")
 
   // Relations
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -447,15 +647,15 @@ model UserChallengeSubmission {
 }
 
 model UserContestParticipation {
-  id            String              @id @default(cuid())
-  userId        String              @map("user_id")
-  contestId     String              @map("contest_id")
-  registeredAt  DateTime            @default(now()) @map("registered_at")
-  startedAt     DateTime?           @map("started_at")
-  finishedAt    DateTime?           @map("finished_at")
-  totalScore    Int                 @default(0) @map("total_score")
-  finalRank     Int?                @map("final_rank")
-  problemsSolved Int                @default(0) @map("problems_solved")
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  contestId      String    @map("contest_id")
+  registeredAt   DateTime  @default(now()) @map("registered_at")
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  totalScore     Int       @default(0) @map("total_score")
+  finalRank      Int?      @map("final_rank")
+  problemsSolved Int       @default(0) @map("problems_solved")
 
   // Relations
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -469,19 +669,21 @@ model UserContestParticipation {
 }
 
 model ContestSubmission {
-  id               String           @id @default(cuid())
-  participationId  String           @map("participation_id")
-  problemId        String           @map("problem_id")
-  codeSubmission   String           @map("code_submission") @db.Text
-  language         String           @db.VarChar(50)
-  status           SubmissionStatus?
-  score            Int              @default(0)
-  executionTimeMs  Int?             @map("execution_time_ms")
-  submittedAt      DateTime         @default(now()) @map("submitted_at")
+  id              String            @id @default(cuid())
+  participationId String            @map("participation_id")
+  problemId       String            @map("problem_id")
+  languageId      String            @map("language_id")
+  codeSubmission  String            @map("code_submission") @db.Text
+  status          SubmissionStatus?
+  score           Int               @default(0)
+  executionTimeMs Int?              @map("execution_time_ms")
+  memoryUsedMb    Decimal?          @map("memory_used_mb") @db.Decimal(8, 2)
+  submittedAt     DateTime          @default(now()) @map("submitted_at")
 
   // Relations
   participation UserContestParticipation @relation(fields: [participationId], references: [id], onDelete: Cascade)
   problem       Problem                  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language      ProgrammingLanguage      @relation(fields: [languageId], references: [id], onDelete: Cascade)
 
   @@index([participationId, problemId])
   @@index([status])
@@ -493,14 +695,14 @@ model ContestSubmission {
 // =============================================
 
 model CertificateType {
-  id               String          @id @default(cuid())
-  name             String          @db.VarChar(255)
-  description      String?         @db.Text
+  id               String              @id @default(cuid())
+  name             String              @db.VarChar(255)
+  description      String?             @db.Text
   certificateType  CertificateTypeEnum @map("certificate_type")
-  templateUrl      String?         @map("template_url") @db.VarChar(500)
-  requirementsJson Json?           @map("requirements_json")
-  isActive         Boolean         @default(true) @map("is_active")
-  createdAt        DateTime        @default(now()) @map("created_at")
+  templateUrl      String?             @map("template_url") @db.VarChar(500)
+  requirementsJson Json?               @map("requirements_json")
+  isActive         Boolean             @default(true) @map("is_active")
+  createdAt        DateTime            @default(now()) @map("created_at")
 
   // Relations
   userCertificates UserCertificate[]
@@ -510,15 +712,15 @@ model CertificateType {
 }
 
 model UserCertificate {
-  id                 String         @id @default(cuid())
-  userId             String         @map("user_id")
-  certificateTypeId  String         @map("certificate_type_id")
-  referenceId        String?        @map("reference_id")
-  referenceType      ReferenceType?  @map("reference_type")
-  certificateUrl     String?        @map("certificate_url") @db.VarChar(500)
-  verificationCode   String         @unique @map("verification_code") @db.VarChar(100)
-  issuedAt           DateTime       @default(now()) @map("issued_at")
-  expiresAt          DateTime?      @map("expires_at")
+  id                String         @id @default(cuid())
+  userId            String         @map("user_id")
+  certificateTypeId String         @map("certificate_type_id")
+  referenceId       String?        @map("reference_id")
+  referenceType     ReferenceType? @map("reference_type")
+  certificateUrl    String?        @map("certificate_url") @db.VarChar(500)
+  verificationCode  String         @unique @map("verification_code") @db.VarChar(100)
+  issuedAt          DateTime       @default(now()) @map("issued_at")
+  expiresAt         DateTime?      @map("expires_at")
 
   // Relations
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -553,7 +755,7 @@ model HiringProcess {
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  company      Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company      Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
   skills       HiringProcessSkill[]
   applications UserApplication[]
 
@@ -579,14 +781,14 @@ model HiringProcessSkill {
 }
 
 model UserApplication {
-  id                String            @id @default(cuid())
-  userId            String            @map("user_id")
-  hiringProcessId   String            @map("hiring_process_id")
-  status            ApplicationStatus?
-  coverLetter       String?           @map("cover_letter") @db.Text
-  resumeUrl         String?           @map("resume_url") @db.VarChar(500)
-  appliedAt         DateTime          @default(now()) @map("applied_at")
-  updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at")
+  id              String             @id @default(cuid())
+  userId          String             @map("user_id")
+  hiringProcessId String             @map("hiring_process_id")
+  status          ApplicationStatus?
+  coverLetter     String?            @map("cover_letter") @db.Text
+  resumeUrl       String?            @map("resume_url") @db.VarChar(500)
+  appliedAt       DateTime           @default(now()) @map("applied_at")
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at")
 
   // Relations
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -654,12 +856,24 @@ enum SizeCategory {
   enterprise
 }
 
+enum ParameterType {
+  int
+  float
+  string
+  list_int
+  list_float
+  list_string
+  matrix_int
+  custom
+}
+
 enum TechnologyCategory {
   language
   framework
   library
   tool
   database
+  cloud_service
   other
 }
 
@@ -673,6 +887,40 @@ enum ProblemDifficulty {
   easy
   medium
   hard
+  expert
+}
+
+enum ProblemType {
+  algorithmic // Traditional DSA problems
+  system_design // System design problems
+  web_development // Frontend/Backend challenges
+  database // SQL problems
+  machine_learning // AI/ML problems
+  data_analysis // Data science problems
+  cybersecurity // Security challenges
+  mobile_development // Mobile app challenges
+  devops // Infrastructure/deployment problems
+  game_development // Game dev challenges
+  blockchain // Web3/blockchain problems
+  other
+}
+
+enum ChallengeType {
+  coding // Traditional coding challenge
+  project_based // Build a complete project
+  design // UI/UX design challenge
+  system_design // Architecture challenge
+  debugging // Debug existing code
+  optimization // Performance optimization
+  code_review // Review and improve code
+}
+
+enum SuggestionType {
+  hint // Problem-solving hint
+  approach // Algorithm approach suggestion
+  optimization // Performance improvement tip
+  debugging // Debug assistance
+  concept // Concept explanation
 }
 
 enum ContestType {
@@ -680,6 +928,7 @@ enum ContestType {
   open_book
   speed_coding
   algorithm_contest
+  hackathon
 }
 
 enum ProgressStatus {
@@ -692,10 +941,13 @@ enum SubmissionStatus {
   pending
   accepted
   wrong_answer
-  time_limit
-  memory_limit
+  time_limit_exceeded
+  memory_limit_exceeded
   runtime_error
   compile_error
+  presentation_error
+  output_limit_exceeded
+  internal_error
 }
 
 enum ChallengeSubmissionStatus {
@@ -711,6 +963,7 @@ enum CertificateTypeEnum {
   challenge_completion
   contest_achievement
   skill_milestone
+  domain_mastery
 }
 
 enum ReferenceType {
@@ -718,6 +971,8 @@ enum ReferenceType {
   challenge
   contest
   skill
+  domain
+  category
 }
 
 enum JobType {
@@ -725,6 +980,8 @@ enum JobType {
   entry_level
   mid_level
   senior_level
+  lead
+  principal
 }
 
 enum ProficiencyLevel {

@@ -69,9 +69,11 @@ export abstract class BaseExecutor {
     let container: dockerode.Container | null = null;
     
     try {
+      console.log('line: 72 BaseExecutor.ts');
       // Ensure the Docker image exists
       await this.ensureImageExists(docker, image);
-      
+
+      console.log('line: 75 BaseExecutor.ts');
       container = await docker.createContainer({
         Image: image,
         Cmd: ['/bin/sh', '-c', code],
@@ -90,9 +92,11 @@ export abstract class BaseExecutor {
         },
       });
 
+      console.log('line: 95 BaseExecutor.ts');
       await container.start();
       
       // Handle input if provided
+      console.log('line: 99 BaseExecutor.ts');
       if (input) {
         const stream = await container.attach({
           stream: true,
@@ -104,6 +108,7 @@ export abstract class BaseExecutor {
         stream.end();
       }
 
+      console.log('line: 111 BaseExecutor.ts');
       // Wait for container to finish with timeout
       const waitResult = await Promise.race([
         container.wait(),
@@ -112,6 +117,7 @@ export abstract class BaseExecutor {
         ),
       ]);
 
+      console.log('line: 120 BaseExecutor.ts');
       // Get logs before removing container
       const logs = await container.logs({
         stdout: true,
@@ -120,7 +126,8 @@ export abstract class BaseExecutor {
       });
 
       const executionTime = Date.now() - startTime;
-      
+      console.log('line: 129 BaseExecutor.ts');
+
       // Parse Docker logs (they include headers we need to strip)
       const logString = this.parseDockerLogs(logs);
       const output = logString.split('\n').filter((line: string) => line.trim());

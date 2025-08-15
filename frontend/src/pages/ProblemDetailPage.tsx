@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { trpc } from '../lib/trpc';
 import { Button } from '../components/ui/button';
-import { CodeEditor } from '../components/features/CodeEditor';
+import { CodeEditor } from '../components/features/MonacoCodeEditor';
 import { TestResults } from '../components/features/TestResults';
 import { AIFeedback } from '../components/features/AIFeedback';
 import { CodeVisualizer } from '../components/features/CodeVisualizer';
-import { useWebSocket } from '../hooks/useWebSocket';
+// import { useWebSocket } from '../hooks/useWebSocket';
 import { 
   Eye, 
   EyeOff, 
@@ -18,16 +18,112 @@ import {
   Lightbulb,
   BarChart3,
   Settings,
-  Maximize2
+  Maximize2,
+  GripVertical
 } from 'lucide-react';
+import { set } from 'zod';
 
 type TabType = 'description' | 'editorial' | 'solutions' | 'submissions';
 type BottomPanelTab = 'testcase' | 'result' | 'hints' | 'feedback';
 
+// Custom hook for resizable panels
+const useResizable = (
+  initialSize: number,
+  minSize: number = 200,
+  maxSize: number = window.innerWidth - 200
+) => {
+  const [size, setSize] = useState(initialSize);
+  const [isResizing, setIsResizing] = useState(false);
+  const startPos = useRef(0);
+  const startSize = useRef(0);
+
+  const startResize = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    startPos.current = e.clientX;
+    startSize.current = size;
+    e.preventDefault();
+  }, [size]);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const diff = e.clientX - startPos.current;
+    const newSize = Math.min(maxSize, Math.max(minSize, startSize.current + diff));
+    setSize(newSize);
+  }, [isResizing, minSize, maxSize]);
+
+  const stopResize = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', resize);
+      document.addEventListener('mouseup', stopResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', resize);
+      document.removeEventListener('mouseup', stopResize);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, resize, stopResize]);
+
+  return { size, startResize, isResizing };
+};
+
+// Custom hook for bottom panel resizing
+const useBottomPanelResize = (initialHeight: number = 320) => {
+  const [height, setHeight] = useState(initialHeight);
+  const [isResizing, setIsResizing] = useState(false);
+  const startPos = useRef(0);
+  const startHeight = useRef(0);
+
+  const startResize = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    startPos.current = e.clientY;
+    startHeight.current = height;
+    e.preventDefault();
+  }, [height]);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const diff = startPos.current - e.clientY; // Inverted for bottom panel
+    const newHeight = Math.min(600, Math.max(150, startHeight.current + diff));
+    setHeight(newHeight);
+  }, [isResizing]);
+
+  const stopResize = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', resize);
+      document.addEventListener('mouseup', stopResize);
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', resize);
+      document.removeEventListener('mouseup', stopResize);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, resize, stopResize]);
+
+  return { height, startResize, isResizing };
+};
+
 export const ProblemDetailPage: React.FC = () => {
   const { problemId } = useParams<{ problemId: string }>();
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('python');
+  const [selectedLanguage, setSelectedLanguage] = useState<any>(null);
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -37,8 +133,12 @@ export const ProblemDetailPage: React.FC = () => {
   const [isBottomPanelExpanded, setIsBottomPanelExpanded] = useState(true);
   const [customTestInput, setCustomTestInput] = useState('');
 
+  // Resizable panels
+  const leftPanel = useResizable(window.innerWidth * 0.5, 300, window.innerWidth - 300);
+  const bottomPanel = useBottomPanelResize(320);
+
   console.log('Problem ID:', problemId);
-  const { on, off } = useWebSocket();
+  // const { on, off } = useWebSocket();
 
   const { data: problem, isLoading } = trpc.problems.getById.useQuery(
     { id: problemId! },
@@ -49,6 +149,32 @@ export const ProblemDetailPage: React.FC = () => {
     { problemId: problemId! },
     { enabled: !!problemId }
   );
+
+  const { data: programmingLanguages } = trpc.problems.getAvailableProgrammingLanguages.useQuery();
+
+  const { data: codeTemplate } = trpc.problems.getCodeTemplateById.useQuery(
+    { 
+      problemId: problemId!, 
+      languageId: selectedLanguage?.id! 
+    },
+    { enabled: !!problemId && !!selectedLanguage?.id }
+  );
+
+  useEffect(() => {
+    if (programmingLanguages && programmingLanguages.length > 0 && !selectedLanguage) {
+      setSelectedLanguage(programmingLanguages[0]);
+    }
+  }, [programmingLanguages]);
+
+  // Set code template when language changes or template loads
+  useEffect(() => {
+    if (codeTemplate?.templateCode && !code) {
+      setCode(codeTemplate.templateCode);
+    }
+  }, [codeTemplate]);
+
+  console.log('Code Template:', codeTemplate);
+  console.log('Current Code:', code);
 
   const submitSolution = trpc.problems.submitSolution.useMutation({
     onSuccess: (result) => {
@@ -63,53 +189,68 @@ export const ProblemDetailPage: React.FC = () => {
     },
   });
 
+  const testCode = trpc.problems.testCode.useMutation({
+    onSuccess: (result) => {
+      setSubmissionResult({ ...result, isCustomRun: true });
+      setIsExecuting(false);
+      setActiveBottomTab('result');
+      setIsBottomPanelExpanded(true);
+    },
+    onError: (error) => {
+      alert('Code execution failed: ' + error.message);
+      setIsExecuting(false);
+    },
+  });
+
   const hintQuery = trpc.problems.getHint.useQuery(
     { problemId: problemId! },
     { enabled: false }
   );
 
+  const sampleTestCases = problem?.testCases?.filter((test: any) => test.isSample === true);
+
   // Initialize custom test input with sample input
   useEffect(() => {
-    if (problem?.sampleInput && !customTestInput) {
-      setCustomTestInput(problem.sampleInput);
+    if (sampleTestCases && !customTestInput) {
+      setCustomTestInput(sampleTestCases.map((test: any) => test.input).join('\n'));
     }
-  }, [problem?.sampleInput, customTestInput]);
+  }, [problem?.testCases, customTestInput]);
 
   // WebSocket event handlers
-  useEffect(() => {
-    const handleExecutionStarted = (data: { requestId: string }) => {
-      setIsExecuting(true);
-      setExecutionProgress('Starting code execution...');
-    };
+  // useEffect(() => {
+  //   const handleExecutionStarted = (data: { requestId: string }) => {
+  //     setIsExecuting(true);
+  //     setExecutionProgress('Starting code execution...');
+  //   };
 
-    const handleExecutionProgress = (data: { requestId: string; stage: string }) => {
-      setExecutionProgress(data.stage);
-    };
+  //   const handleExecutionProgress = (data: { requestId: string; stage: string }) => {
+  //     setExecutionProgress(data.stage);
+  //   };
 
-    const handleExecutionCompleted = (data: { requestId: string; result: any }) => {
-      setIsExecuting(false);
-      setExecutionProgress('');
-    };
+  //   const handleExecutionCompleted = (data: { requestId: string; result: any }) => {
+  //     setIsExecuting(false);
+  //     setExecutionProgress('');
+  //   };
 
-    const handleAnalysisCompleted = (data: { attemptId: string; analysis: any }) => {
-      setSubmissionResult((prev: any) => prev ? { ...prev, aiAnalysis: data.analysis } : null);
-      if (data.analysis) {
-        setActiveBottomTab('feedback');
-      }
-    };
+  //   const handleAnalysisCompleted = (data: { attemptId: string; analysis: any }) => {
+  //     setSubmissionResult((prev: any) => prev ? { ...prev, aiAnalysis: data.analysis } : null);
+  //     if (data.analysis) {
+  //       setActiveBottomTab('feedback');
+  //     }
+  //   };
 
-    on('execution:started', handleExecutionStarted);
-    on('execution:progress', handleExecutionProgress);
-    on('execution:completed', handleExecutionCompleted);
-    on('analysis:completed', handleAnalysisCompleted);
+  //   on('execution:started', handleExecutionStarted);
+  //   on('execution:progress', handleExecutionProgress);
+  //   on('execution:completed', handleExecutionCompleted);
+  //   on('analysis:completed', handleAnalysisCompleted);
 
-    return () => {
-      off('execution:started', handleExecutionStarted);
-      off('execution:progress', handleExecutionProgress);
-      off('execution:completed', handleExecutionCompleted);
-      off('analysis:completed', handleAnalysisCompleted);
-    };
-  }, [on, off]);
+  //   return () => {
+  //     off('execution:started', handleExecutionStarted);
+  //     off('execution:progress', handleExecutionProgress);
+  //     off('execution:completed', handleExecutionCompleted);
+  //     off('analysis:completed', handleAnalysisCompleted);
+  //   };
+  // }, [on, off]);
 
   const handleSubmit = () => {
     if (!code.trim()) {
@@ -123,7 +264,7 @@ export const ProblemDetailPage: React.FC = () => {
     submitSolution.mutate({
       problemId: problemId!,
       code,
-      language,
+      languageId: selectedLanguage?.id || 'python',
     });
   };
 
@@ -135,35 +276,12 @@ export const ProblemDetailPage: React.FC = () => {
 
     setIsExecuting(true);
     setExecutionProgress('Running code...');
-    setActiveBottomTab('result');
-    setIsBottomPanelExpanded(true);
-
-    try {
-      const response = await fetch('/api/execute', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-        },
-        body: JSON.stringify({
-          code,
-          language,
-          input: customTestInput || problem?.sampleInput || '',
-          timeLimit: 5000,
-          memoryLimit: 128,
-        }),
-      });
-      
-      const result = await response.json();
-      console.log('Execution result:', result);
-      setSubmissionResult({ ...result, isCustomRun: true });
-    } catch (error) {
-      console.error('Code execution failed:', error);
-      alert('Code execution failed. Please try again.');
-    } finally {
-      setIsExecuting(false);
-      setExecutionProgress('');
-    }
+    
+    testCode.mutate({
+      problemId: problemId!,
+      code,
+      languageId: selectedLanguage?.id || 'python',
+    });
   };
 
   const handleGetHint = () => {
@@ -176,6 +294,22 @@ export const ProblemDetailPage: React.FC = () => {
     setShowVisualizer(!showVisualizer);
     if (!showVisualizer) {
       setActiveTab('description');
+    }
+  };
+
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedLang = programmingLanguages?.find(lang => lang.name === event.target.value);
+    if (selectedLang) {
+      setSelectedLanguage(selectedLang);
+      // Reset code when language changes
+      setCode('');
+    }
+  };
+
+  // Reset to template functionality
+  const resetToTemplate = () => {
+    if (codeTemplate?.templateCode) {
+      setCode(codeTemplate.templateCode);
     }
   };
 
@@ -203,8 +337,8 @@ export const ProblemDetailPage: React.FC = () => {
             <h1 className="text-xl font-bold text-white mb-2">{problem.title}</h1>
             <div className="flex items-center space-x-3">
               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                problem.difficultyLevel === 'BEGINNER' ? 'bg-green-500 text-green-900' :
-                problem.difficultyLevel === 'INTERMEDIATE' ? 'bg-yellow-500 text-yellow-900' :
+                problem.difficultyLevel === 'easy' ? 'bg-green-500 text-green-900' :
+                problem.difficultyLevel === 'medium' ? 'bg-yellow-500 text-yellow-900' :
                 'bg-red-500 text-red-900'
               }`}>
                 {problem.difficultyLevel}
@@ -235,24 +369,32 @@ export const ProblemDetailPage: React.FC = () => {
         </div>
 
         {/* Examples */}
-        {(problem.sampleInput || problem.sampleOutput) && (
+        {sampleTestCases && sampleTestCases.length > 0 && (
           <div className="space-y-4 mb-6">
             <h3 className="text-lg font-semibold text-white">Examples</h3>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h4 className="font-medium text-white mb-2">Example 1:</h4>
-              {problem.sampleInput && (
-                <div className="mb-3">
-                  <span className="text-sm font-medium text-gray-300">Input: </span>
-                  <code className="text-sm text-blue-400 font-mono">{problem.sampleInput}</code>
-                </div>
-              )}
-              {problem.sampleOutput && (
-                <div>
-                  <span className="text-sm font-medium text-gray-300">Output: </span>
-                  <code className="text-sm text-green-400 font-mono">{problem.sampleOutput}</code>
-                </div>
-              )}
-            </div>
+            {sampleTestCases.map((testCase: any, index: number) => (
+              <div key={index} className="bg-slate-800 rounded-lg p-4">
+                <h4 className="font-medium text-white mb-2">Example {index + 1}:</h4>
+                {testCase.input && (
+                  <div className="mb-3">
+                    <span className="text-sm font-medium text-gray-300">Input: </span>
+                    <code className="text-sm text-blue-400 font-mono">{testCase.input}</code>
+                  </div>
+                )}
+                {testCase.expectedOutput && (
+                  <div className="mb-3">
+                    <span className="text-sm font-medium text-gray-300">Output: </span>
+                    <code className="text-sm text-green-400 font-mono">{testCase.expectedOutput}</code>
+                  </div>
+                )}
+                {testCase.explanation && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-300">Explanation: </span>
+                    <span className="text-sm text-gray-300">{testCase.explanation}</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -287,137 +429,12 @@ export const ProblemDetailPage: React.FC = () => {
         </div>
         <CodeVisualizer
           code={code}
-          language={language}
-          input={customTestInput || problem.sampleInput || ''}
+          language={selectedLanguage?.name || 'python'}
+          input={customTestInput || ''}
         />
       </div>
     </div>
   );
-
-  const renderBottomPanel = () => {
-    if (!isBottomPanelExpanded) return null;
-
-    return (
-      <div className="h-80 bg-slate-900 border-t border-slate-700">
-        {/* Tab Header */}
-        <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700">
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setActiveBottomTab('testcase')}
-              className={`px-3 py-1 text-sm font-medium rounded ${
-                activeBottomTab === 'testcase' 
-                  ? 'bg-slate-700 text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Testcase
-            </button>
-            <button
-              onClick={() => setActiveBottomTab('result')}
-              className={`px-3 py-1 text-sm font-medium rounded ${
-                activeBottomTab === 'result' 
-                  ? 'bg-slate-700 text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Test Result
-            </button>
-            <button
-              onClick={() => setActiveBottomTab('hints')}
-              className={`px-3 py-1 text-sm font-medium rounded ${
-                activeBottomTab === 'hints' 
-                  ? 'bg-slate-700 text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Hints
-            </button>
-            <button
-              onClick={() => setActiveBottomTab('feedback')}
-              className={`px-3 py-1 text-sm font-medium rounded ${
-                activeBottomTab === 'feedback' 
-                  ? 'bg-slate-700 text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              AI Feedback
-            </button>
-          </div>
-          <button
-            onClick={() => setIsBottomPanelExpanded(false)}
-            className="text-gray-400 hover:text-white"
-          >
-            <ChevronDown size={20} />
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="h-full overflow-y-auto p-4">
-          {activeBottomTab === 'testcase' && (
-            <div>
-              <h3 className="text-white font-medium mb-2">Custom Test Input</h3>
-              <textarea
-                value={customTestInput}
-                onChange={(e) => setCustomTestInput(e.target.value)}
-                className="w-full h-32 bg-slate-800 border border-slate-600 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your test input..."
-              />
-            </div>
-          )}
-
-          {activeBottomTab === 'result' && (
-            <div>
-              {submissionResult ? (
-                <TestResults
-                  result={submissionResult}
-                  onClose={() => setSubmissionResult(null)}
-                />
-              ) : (
-                <div className="text-gray-400 text-center py-8">
-                  No test results yet. Run your code to see results.
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeBottomTab === 'hints' && (
-            <div>
-              {hintQuery.data ? (
-                <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-300 mb-2 flex items-center">
-                    <Lightbulb size={16} className="mr-2" />
-                    Hint (Attempt #{hintQuery.data.attemptNumber})
-                  </h4>
-                  <p className="text-blue-200 text-sm leading-relaxed">{hintQuery.data.hint}</p>
-                </div>
-              ) : (
-                <div className="text-gray-400 text-center py-8">
-                  <Lightbulb size={32} className="mx-auto mb-2 opacity-50" />
-                  <p>Click "Get Hint" to receive a helpful tip for solving this problem.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeBottomTab === 'feedback' && (
-            <div>
-              {submissionResult?.aiAnalysis ? (
-                <AIFeedback
-                  analysis={submissionResult.aiAnalysis}
-                  attemptNumber={submissionResult.attemptNumber}
-                />
-              ) : (
-                <div className="text-gray-400 text-center py-8">
-                  <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
-                  <p>Submit your solution to receive AI-powered feedback and suggestions.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="fixed inset-0 bg-slate-900 flex flex-col">
@@ -435,23 +452,16 @@ export const ProblemDetailPage: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-2">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="python">Python</option>
-              <option value="javascript">JavaScript</option>
-            </select>
-          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
         {/* Left Panel - Problem Description */}
-        <div className="w-1/2 bg-slate-900 border-r border-slate-700 flex flex-col">
+        <div 
+          className="bg-slate-900 border-r border-slate-700 flex flex-col"
+          style={{ width: leftPanel.size }}
+        >
           {/* Tab Navigation */}
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex-shrink-0">
             <div className="flex space-x-4">
@@ -489,20 +499,45 @@ export const ProblemDetailPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Vertical Resize Handle */}
+        <div
+          className={`w-2 bg-slate-700 hover:bg-slate-600 cursor-col-resize flex items-center justify-center group transition-colors ${
+            leftPanel.isResizing ? 'bg-slate-600' : ''
+          }`}
+          onMouseDown={leftPanel.startResize}
+        >
+          <GripVertical 
+            size={16} 
+            className="text-slate-400 group-hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" 
+          />
+        </div>
+
         {/* Right Panel - Code Editor */}
-        <div className="w-1/2 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Code Editor Header */}
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center space-x-4">
               <h3 className="text-sm font-medium text-white">Code</h3>
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                value={selectedLanguage?.name || 'python'}
+                onChange={handleLanguageChange}
                 className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
+                {programmingLanguages?.map((lang: any) => (
+                  <option key={lang.id} value={lang.name}>
+                    {lang.name}
+                  </option>
+                ))}
               </select>
+              {codeTemplate?.templateCode && (
+                <button
+                  onClick={resetToTemplate}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+                  title="Reset to template"
+                >
+                  Reset Template
+                </button>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -517,14 +552,26 @@ export const ProblemDetailPage: React.FC = () => {
           </div>
 
           {/* Code Editor Container */}
-          <div className={`flex flex-col ${isBottomPanelExpanded ? 'flex-1' : 'flex-1'} min-h-0`}>
+          <div 
+            className="flex flex-col min-h-0"
+            style={{ 
+              height: isBottomPanelExpanded 
+                ? `calc(100% - ${bottomPanel.height}px)` 
+                : '100%' 
+            }}
+          >
             {/* Code Editor */}
-            <div className={`${isBottomPanelExpanded ? 'flex-1' : 'flex-1'} min-h-0`}>
+            <div className="flex-1 min-h-0">
               <CodeEditor
                 value={code}
                 onChange={setCode}
-                language={language}
+                language={selectedLanguage?.name || 'python'}
                 height="100%"
+                minimap={true}
+                fontSize={14}
+                theme="vs-dark"
+                resetToTemplate={resetToTemplate}
+                codeTemplate={codeTemplate}
               />
             </div>
 
@@ -565,131 +612,144 @@ export const ProblemDetailPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </div>
 
-            {/* Bottom Panel */}
-            {isBottomPanelExpanded && (
-              <div className="h-80 bg-slate-900 border-t border-slate-700 flex-shrink-0">
+          {/* Bottom Panel */}
+          {isBottomPanelExpanded && (
+            <>
+              {/* Horizontal Resize Handle */}
+              <div
+                className={`h-2 bg-slate-700 hover:bg-slate-600 cursor-row-resize flex items-center justify-center group transition-colors ${
+                  bottomPanel.isResizing ? 'bg-slate-600' : ''
+                }`}
+                onMouseDown={bottomPanel.startResize}
+              >
+                <div className="w-12 h-1 bg-slate-500 group-hover:bg-slate-400 rounded transition-colors" />
+              </div>
+              
+              <div 
+                className="bg-slate-900 border-t border-slate-700 flex flex-col"
+                style={{ height: bottomPanel.height }}
+              >
                 {/* Tab Header */}
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700 flex-shrink-0">
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={() => setActiveBottomTab('testcase')}
-                        className={`px-3 py-1 text-sm font-medium rounded ${
-                          activeBottomTab === 'testcase' 
-                            ? 'bg-slate-700 text-white' 
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Testcase
-                      </button>
-                      <button
-                        onClick={() => setActiveBottomTab('result')}
-                        className={`px-3 py-1 text-sm font-medium rounded ${
-                          activeBottomTab === 'result' 
-                            ? 'bg-slate-700 text-white' 
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Test Result
-                      </button>
-                      <button
-                        onClick={() => setActiveBottomTab('hints')}
-                        className={`px-3 py-1 text-sm font-medium rounded ${
-                          activeBottomTab === 'hints' 
-                            ? 'bg-slate-700 text-white' 
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Hints
-                      </button>
-                      <button
-                        onClick={() => setActiveBottomTab('feedback')}
-                        className={`px-3 py-1 text-sm font-medium rounded ${
-                          activeBottomTab === 'feedback' 
-                            ? 'bg-slate-700 text-white' 
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        AI Feedback
-                      </button>
-                    </div>
+                <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700 flex-shrink-0">
+                  <div className="flex space-x-4">
                     <button
-                      onClick={() => setIsBottomPanelExpanded(false)}
-                      className="text-gray-400 hover:text-white"
+                      onClick={() => setActiveBottomTab('testcase')}
+                      className={`px-3 py-1 text-sm font-medium rounded ${
+                        activeBottomTab === 'testcase' 
+                          ? 'bg-slate-700 text-white' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
                     >
-                      <ChevronDown size={20} />
+                      Testcase
+                    </button>
+                    <button
+                      onClick={() => setActiveBottomTab('result')}
+                      className={`px-3 py-1 text-sm font-medium rounded ${
+                        activeBottomTab === 'result' 
+                          ? 'bg-slate-700 text-white' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Test Result
+                    </button>
+                    <button
+                      onClick={() => setActiveBottomTab('hints')}
+                      className={`px-3 py-1 text-sm font-medium rounded ${
+                        activeBottomTab === 'hints' 
+                          ? 'bg-slate-700 text-white' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Hints
+                    </button>
+                    <button
+                      onClick={() => setActiveBottomTab('feedback')}
+                      className={`px-3 py-1 text-sm font-medium rounded ${
+                        activeBottomTab === 'feedback' 
+                          ? 'bg-slate-700 text-white' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      AI Feedback
                     </button>
                   </div>
+                  <button
+                    onClick={() => setIsBottomPanelExpanded(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <ChevronDown size={20} />
+                  </button>
+                </div>
 
-                  {/* Tab Content */}
-                  <div className="flex-1 overflow-y-auto p-4">
-                    {activeBottomTab === 'testcase' && (
-                      <div>
-                        <h3 className="text-white font-medium mb-2">Custom Test Input</h3>
-                        <textarea
-                          value={customTestInput}
-                          onChange={(e) => setCustomTestInput(e.target.value)}
-                          className="w-full h-40 bg-slate-800 border border-slate-600 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter your test input..."
+                {/* Tab Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {activeBottomTab === 'testcase' && (
+                    <div>
+                      <h3 className="text-white font-medium mb-2">Custom Test Input</h3>
+                      <textarea
+                        value={customTestInput}
+                        onChange={(e) => setCustomTestInput(e.target.value)}
+                        className="w-full h-40 bg-slate-800 border border-slate-600 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter your test input..."
+                      />
+                    </div>
+                  )}
+
+                  {activeBottomTab === 'result' && (
+                    <div>
+                      {submissionResult ? (
+                        <TestResults
+                          result={submissionResult}
+                          onClose={() => setSubmissionResult(null)}
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-gray-400 text-center py-8">
+                          No test results yet. Run your code to see results.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                    {activeBottomTab === 'result' && (
-                      <div>
-                        {submissionResult ? (
-                          <TestResults
-                            result={submissionResult}
-                            onClose={() => setSubmissionResult(null)}
-                          />
-                        ) : (
-                          <div className="text-gray-400 text-center py-8">
-                            No test results yet. Run your code to see results.
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  {activeBottomTab === 'hints' && (
+                    <div>
+                      {hintQuery.data ? (
+                        <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-300 mb-2 flex items-center">
+                            <Lightbulb size={16} className="mr-2" />
+                            Hint (Attempt #{hintQuery.data.attemptNumber})
+                          </h4>
+                          <p className="text-blue-200 text-sm leading-relaxed">{hintQuery.data.hint}</p>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400 text-center py-8">
+                          <Lightbulb size={32} className="mx-auto mb-2 opacity-50" />
+                          <p>Click "Get Hint" to receive a helpful tip for solving this problem.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                    {activeBottomTab === 'hints' && (
-                      <div>
-                        {hintQuery.data ? (
-                          <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                            <h4 className="font-medium text-blue-300 mb-2 flex items-center">
-                              <Lightbulb size={16} className="mr-2" />
-                              Hint (Attempt #{hintQuery.data.attemptNumber})
-                            </h4>
-                            <p className="text-blue-200 text-sm leading-relaxed">{hintQuery.data.hint}</p>
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-center py-8">
-                            <Lightbulb size={32} className="mx-auto mb-2 opacity-50" />
-                            <p>Click "Get Hint" to receive a helpful tip for solving this problem.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeBottomTab === 'feedback' && (
-                      <div>
-                        {submissionResult?.aiAnalysis ? (
-                          <AIFeedback
-                            analysis={submissionResult.aiAnalysis}
-                            attemptNumber={submissionResult.attemptNumber}
-                          />
-                        ) : (
-                          <div className="text-gray-400 text-center py-8">
-                            <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
-                            <p>Submit your solution to receive AI-powered feedback and suggestions.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {activeBottomTab === 'feedback' && (
+                    <div>
+                      {submissionResult?.aiAnalysis ? (
+                        <AIFeedback
+                          analysis={submissionResult.aiAnalysis}
+                          attemptNumber={submissionResult.attemptNumber}
+                        />
+                      ) : (
+                        <div className="text-gray-400 text-center py-8">
+                          <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
+                          <p>Submit your solution to receive AI-powered feedback and suggestions.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
