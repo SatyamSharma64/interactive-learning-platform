@@ -28,7 +28,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
   value,
   onChange,
   language,
-  height = '400px',
+  height,
   readOnly = false,
   theme = 'vs-dark',
   fontSize = 14,
@@ -404,6 +404,19 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
     }
   };
 
+  useEffect(() => {
+    if (isEditorReady && editorRef.current) {
+      const observer = new ResizeObserver(() => {
+        editorRef.current!.layout();
+      });
+
+      const container = editorRef.current!.getDomNode()?.parentElement;
+      if (container) observer.observe(container);
+
+      return () => observer.disconnect();
+    }
+  }, [isEditorReady]);
+
   // Get initial value - prioritize current value over template
   const getInitialValue = () => {
     return value || '';
@@ -462,9 +475,9 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
       </div>
 
       {/* Monaco Editor */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <Editor
-          height={height}
+          height="100%"
           defaultLanguage={getMonacoLanguage(language)}
           language={getMonacoLanguage(language)}
           value={getInitialValue()}

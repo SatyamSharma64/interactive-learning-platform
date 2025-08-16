@@ -69,7 +69,7 @@ export const LoginPage: React.FC = () => {
             <div>
                 <Button
                 type="submit"
-                variant="primary"
+                variant="ghost"
                 className="w-full"
                 isLoading={loginMutation.isPending}
                 >

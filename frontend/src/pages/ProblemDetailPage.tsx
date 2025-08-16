@@ -93,7 +93,7 @@ const useBottomPanelResize = (initialHeight: number = 320) => {
     if (!isResizing) return;
     
     const diff = startPos.current - e.clientY; // Inverted for bottom panel
-    const newHeight = Math.min(600, Math.max(150, startHeight.current + diff));
+    const newHeight = Math.min(600, Math.max(200, startHeight.current + diff));
     setHeight(newHeight);
   }, [isResizing]);
 
@@ -555,10 +555,10 @@ export const ProblemDetailPage: React.FC = () => {
           <div 
             className="flex flex-col min-h-0"
             style={{ 
-              height: isBottomPanelExpanded 
-                ? `calc(100% - ${bottomPanel.height}px)` 
-                : '100%' 
-            }}
+                height: isBottomPanelExpanded 
+                  ? `calc(100% - ${bottomPanel.height + 8}px)`
+                  : '100%'
+              }}
           >
             {/* Code Editor */}
             <div className="flex-1 min-h-0">
@@ -573,44 +573,6 @@ export const ProblemDetailPage: React.FC = () => {
                 resetToTemplate={resetToTemplate}
                 codeTemplate={codeTemplate}
               />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-slate-800 border-t border-slate-700 px-4 py-3 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={handleRunCode}
-                    variant="outline"
-                    size="sm"
-                    disabled={isExecuting}
-                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  >
-                    <Play size={16} className="mr-2" />
-                    {isExecuting ? 'Running...' : 'Run'}
-                  </Button>
-                  <Button
-                    onClick={handleGetHint}
-                    variant="outline"
-                    size="sm"
-                    disabled={isExecuting}
-                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  >
-                    <Lightbulb size={16} className="mr-2" />
-                    Hint
-                  </Button>
-                </div>
-                
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isExecuting}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  size="sm"
-                >
-                  <Send size={16} className="mr-2" />
-                  {submitSolution.isPending ? 'Submitting...' : 'Submit'}
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -750,6 +712,44 @@ export const ProblemDetailPage: React.FC = () => {
               </div>
             </>
           )}
+
+          {/* Action Buttons */}
+            <div className="bg-slate-800 border-t border-slate-700 px-4 py-3 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={handleRunCode}
+                    variant="outline"
+                    size="sm"
+                    disabled={isExecuting}
+                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                  >
+                    <Play size={16} className="mr-2" />
+                    {isExecuting ? 'Running...' : 'Run'}
+                  </Button>
+                  <Button
+                    onClick={handleGetHint}
+                    variant="outline"
+                    size="sm"
+                    disabled={isExecuting}
+                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                  >
+                    <Lightbulb size={16} className="mr-2" />
+                    Hint
+                  </Button>
+                </div>
+                
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isExecuting}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <Send size={16} className="mr-2" />
+                  {submitSolution.isPending ? 'Submitting...' : 'Submit'}
+                </Button>
+              </div>
+            </div>
         </div>
       </div>
     </div>

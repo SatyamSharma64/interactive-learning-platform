@@ -107,7 +107,6 @@ export const problemsRouter = router({
       return problemsWithProgress;
     }),
 
-
   getByTopic: protectedProcedure
     .input(z.object({ topicId: z.string() }))
     .query(async ({ input, ctx }) => {
@@ -135,33 +134,33 @@ export const problemsRouter = router({
       });
     }),
 
-    getCodeTemplateById: protectedProcedure
-    .input(z.object({
-      problemId: z.string(),
-      languageId: z.string()
-    }))
-    .query(async ({ input, ctx }) => {
-      return await ctx.prisma.codeTemplate.findUnique({
-        where: {
-          problemId_languageId: {
-            problemId: input.problemId,
-            languageId: input.languageId,
-          },
+  getCodeTemplateById: protectedProcedure
+  .input(z.object({
+    problemId: z.string(),
+    languageId: z.string()
+  }))
+  .query(async ({ input, ctx }) => {
+    return await ctx.prisma.codeTemplate.findUnique({
+      where: {
+        problemId_languageId: {
+          problemId: input.problemId,
+          languageId: input.languageId,
         },
-      });
-    }),
+      },
+    });
+  }),
 
-    getAvailableProgrammingLanguages: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await ctx.prisma.programmingLanguage.findMany({
-        select: {
-          id: true,
-          name: true,
-          displayName: true,
-          isActive: true,
-        },
-      });
-    }),
+  getAvailableProgrammingLanguages: protectedProcedure
+  .query(async ({ ctx }) => {
+    return await ctx.prisma.programmingLanguage.findMany({
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        isActive: true,
+      },
+    });
+  }),
 
   testCode: protectedProcedure
     .input(z.object({
@@ -236,8 +235,6 @@ export const problemsRouter = router({
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
       }
     }),
-
-
 
   submitSolution: protectedProcedure
     .input(z.object({
@@ -384,7 +381,6 @@ export const problemsRouter = router({
       const hint = await aiService.generateHint(input.problemId, attemptCount + 1);
       return { hint, attemptNumber: attemptCount + 1 };
     }),
-
 
   getUserProgress: protectedProcedure
     .input(z.object({ problemId: z.string() }))

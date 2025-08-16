@@ -88,7 +88,7 @@ export const RegisterPage: React.FC = () => {
           <div>
             <Button
               type="submit"
-              variant="primary"
+              variant="ghost"
               className="w-full"
               isLoading={registerMutation.isPending}
             >

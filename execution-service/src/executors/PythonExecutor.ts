@@ -2,23 +2,19 @@ import { BaseExecutor, type ExecutionRequest, type ExecutionResult } from './Bas
 
 export class PythonExecutor extends BaseExecutor {
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
-    
-    // const fullScript = this.buildExecutionScript(request);
     console.log('Executing Python script:', request.code);
-    // Use base64 encoding to safely pass the script to Docker
-    const encodedScript = Buffer.from(request.code).toString('base64');
+    
+    // Create a more robust execution script
+    const executionScript = this.buildExecutionScript(request);
+    const encodedScript = Buffer.from(executionScript).toString('base64');
     
     let command: string;
     
     if (request.input && request.input.trim()) {
-      // If input is provided, create a command that pipes input to the Python script
       const encodedInput = Buffer.from(request.input).toString('base64');
       command = `echo '${encodedScript}' | base64 -d > /tmp/solution.py && echo '${encodedInput}' | base64 -d | python /tmp/solution.py`;
     } else {
-      // If no input provided, create a script that doesn't expect input
-      const modifiedCode = this.wrapCodeForNoInput(request.code);
-      const encodedModifiedScript = Buffer.from(modifiedCode).toString('base64');
-      command = `echo '${encodedModifiedScript}' | base64 -d > /tmp/solution.py && python /tmp/solution.py`;
+      command = `echo '${encodedScript}' | base64 -d > /tmp/solution.py && python /tmp/solution.py`;
     }
 
     return await this.runInContainer(
@@ -30,27 +26,215 @@ export class PythonExecutor extends BaseExecutor {
     );
   }
 
-private wrapCodeForNoInput(code: string): string {
-    // Check if the code expects input
-    if (code.includes('input()') && !code.includes('# Test case')) {
-      // Wrap the code to provide default test input
+  private buildExecutionScript(request: ExecutionRequest): string {
+    const { code, input = '' } = request;
+    
+    // Enhanced execution script with better error handling and debugging support
+    return `
+import sys
+import traceback
+import io
+from contextlib import redirect_stdout, redirect_stderr
+import json
+import time
+import gc
+
+# Setup for enhanced execution
+start_time = time.time()
+output_buffer = io.StringIO()
+error_buffer = io.StringIO()
+execution_info = {
+    'start_time': start_time,
+    'success': False,
+    'output': [],
+    'errors': [],
+    'execution_time': 0,
+    'memory_usage': 0,
+    'line_count': len('''${code.replace(/'/g, "\\'")}'''.split('\\n')),
+    'has_input': ${input ? 'True' : 'False'}
+}
+
+def get_memory_usage():
+    """Get current memory usage in MB"""
+    try:
+        import psutil
+        import os
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / 1024 / 1024
+    except ImportError:
+        # Fallback to gc stats if psutil is not available
+        return len(gc.get_objects()) * 0.001  # Rough estimation
+
+# Prepare input if provided
+if execution_info['has_input']:
+    sys.stdin = io.StringIO('''${input.replace(/'/g, "\\'")}''')
+
+try:
+    # Redirect stdout and stderr to capture all output
+    with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
+        # Execute the user code in a controlled environment
+        user_globals = {
+            '__name__': '__main__',
+            '__builtins__': __builtins__,
+        }
+        
+        # Add common imports that might be needed
+        exec('''
+import sys
+import math
+import random
+import itertools
+from collections import defaultdict, Counter, deque
+import heapq
+import bisect
+''', user_globals)
+        
+        # Execute the actual user code
+        exec('''${code.replace(/'/g, "\\'")}''', user_globals)
+    
+    # Capture successful execution
+    execution_info['success'] = True
+    output_content = output_buffer.getvalue()
+    if output_content:
+        execution_info['output'] = output_content.split('\\n')
+    
+except Exception as e:
+    # Capture execution errors with detailed traceback
+    execution_info['success'] = False
+    error_content = error_buffer.getvalue()
+    
+    if error_content:
+        execution_info['errors'].append(error_content)
+    
+    # Add formatted traceback
+    tb_lines = traceback.format_exc().split('\\n')
+    # Filter out internal execution lines
+    filtered_tb = []
+    for line in tb_lines:
+        if 'exec(' not in line and '/tmp/solution.py' in line or 'Error:' in line or 'Exception:' in line:
+            filtered_tb.append(line)
+    
+    if filtered_tb:
+        execution_info['errors'].extend(filtered_tb)
+    else:
+        execution_info['errors'].append(f"{type(e).__name__}: {str(e)}")
+
+except KeyboardInterrupt:
+    execution_info['success'] = False
+    execution_info['errors'].append('Execution interrupted (timeout or manual stop)')
+
+except SystemExit as e:
+    execution_info['success'] = e.code == 0
+    if e.code != 0:
+        execution_info['errors'].append(f'Program exited with code {e.code}')
+
+finally:
+    # Calculate execution metrics
+    execution_info['execution_time'] = (time.time() - start_time) * 1000  # Convert to milliseconds
+    execution_info['memory_usage'] = get_memory_usage()
+
+# Clean up empty lines and format output
+if execution_info['output']:
+    execution_info['output'] = [line for line in execution_info['output'] if line.strip() or line == '']
+    # Remove trailing empty lines
+    while execution_info['output'] and not execution_info['output'][-1].strip():
+        execution_info['output'].pop()
+
+# Print results in a format that can be parsed by the executor
+print("=== EXECUTION_START ===")
+if execution_info['success']:
+    for line in execution_info['output']:
+        print(line)
+else:
+    for error in execution_info['errors']:
+        print(error, file=sys.stderr)
+print("=== EXECUTION_END ===")
+
+# Debug information (will be captured separately)
+print(f"=== DEBUG_INFO ===", file=sys.stderr)
+print(f"Execution time: {execution_info['execution_time']:.2f}ms", file=sys.stderr)
+print(f"Memory usage: {execution_info['memory_usage']:.2f}MB", file=sys.stderr)
+print(f"Success: {execution_info['success']}", file=sys.stderr)
+print(f"Lines of code: {execution_info['line_count']}", file=sys.stderr)
+`;
+  }
+
+  private wrapCodeForNoInput(code: string): string {
+    // Enhanced input handling for cases where code expects input but none is provided
+    if (code.includes('input(') && !code.includes('# Test case')) {
       return `
-# Wrapped version with test input
+# Enhanced wrapper with better input handling
 import sys
 from io import StringIO
 
-# Mock input for testing
-test_input = """2 7 11 15
-9"""
+# Detect what kind of input might be expected
+lines = '''${code.replace(/'/g, "\\'")}'''.split('\\n')
+input_calls = [line for line in lines if 'input(' in line]
 
-sys.stdin = StringIO(test_input)
+# Provide reasonable default inputs
+default_inputs = []
+for call in input_calls:
+    if 'int(' in call:
+        default_inputs.append('1')
+    elif 'float(' in call:
+        default_inputs.append('1.0')
+    else:
+        default_inputs.append('test')
 
+# Set up mock input
+if default_inputs:
+    sys.stdin = StringIO('\\n'.join(default_inputs))
+else:
+    sys.stdin = StringIO('1\\n')  # Basic fallback
+
+# Execute original code
 ${code}
 `;
     }
     return code;
   }
+
+  async executeWithTracing(request: ExecutionRequest): Promise<ExecutionResult & { tracingData?: any }> {
+    // Execute with additional tracing information
+    const result = await this.execute(request);
+    
+    // Parse debug information from stderr if available
+    let tracingData: tracingData = {};
+    if (result.errors && result.errors.length > 0) {
+      const debugInfoStart = result.errors.findIndex(line => line.includes('=== DEBUG_INFO ==='));
+      if (debugInfoStart !== -1) {
+        const debugLines = result.errors.slice(debugInfoStart + 1);
+
+        for (const line of debugLines) {
+          if (line.includes('Execution time:')) {
+            tracingData.executionTime = parseFloat(line.split(':')[1]?.trim() ?? '0');
+          } else if (line.includes('Memory usage:')) {
+            tracingData.memoryUsage = parseFloat(line.split(':')[1]?.trim() ?? '0');
+          } else if (line.includes('Success:')) {
+            tracingData.success = line.split(':')[1]?.trim() === 'True';
+          } else if (line.includes('Lines of code:')) {
+            tracingData.lineCount = parseInt(line.split(':')[1]?.trim() ?? '0');
+          }
+        }
+
+        // Remove debug info from errors
+        result.errors = result.errors.slice(0, debugInfoStart);
+      }
+    }
+
+    return {
+      ...result,
+      tracingData
+    };
+  }
 }
+
+interface tracingData {
+    executionTime?: number;
+    memoryUsage?: number;
+    success?: boolean;
+    lineCount?: number;
+  }
 
 //   private buildExecutionScript(request: ExecutionRequest): string {
 //     // Get the template for this problem (this would come from your database)
