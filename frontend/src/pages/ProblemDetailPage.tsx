@@ -428,8 +428,9 @@ export const ProblemDetailPage: React.FC = () => {
           </Button>
         </div>
         <CodeVisualizer
+          problemId={problemId!}
           code={code}
-          language={selectedLanguage?.name || 'python'}
+          languageId={selectedLanguage?.Id || 'lang1'}
           input={customTestInput || ''}
         />
       </div>

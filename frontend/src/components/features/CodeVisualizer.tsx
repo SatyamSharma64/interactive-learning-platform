@@ -14,14 +14,16 @@ interface ExecutionStep {
 }
 
 interface CodeVisualizerProps {
+  problemId: string;
   code: string;
-  language: string;
+  languageId: string;
   input?: string;
 }
 
 export const CodeVisualizer: React.FC<CodeVisualizerProps> = ({
+  problemId,
   code,
-  language,
+  languageId,
   input = '',
 }) => {
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([]);
@@ -44,7 +46,7 @@ export const CodeVisualizer: React.FC<CodeVisualizerProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         },
-        body: JSON.stringify({ code, language, input }),
+        body: JSON.stringify({ problemId, code, languageId, input }),
       });
       
       const data = await response.json();

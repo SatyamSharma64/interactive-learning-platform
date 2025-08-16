@@ -28,11 +28,11 @@ interface ParameterType {
 }
 
 export class CodeTemplateService {
-  private prisma: PrismaClient;
+  // private prisma: PrismaClient;
 
-  constructor(prisma: PrismaClient) {
-    this.prisma = prisma;
-  }
+  // constructor(prisma: PrismaClient) {
+  //   this.prisma = prisma;
+  // }
 
   buildFullScript(template: CodeTemplate, userCode: string): string {
     
@@ -524,3 +524,5 @@ ${template.testRunnerCode || ''}`;
 //   }
 
 }
+
+export const templateService = new CodeTemplateService();

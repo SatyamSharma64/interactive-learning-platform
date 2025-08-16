@@ -50,8 +50,8 @@ app.post('/api/execute', async (req, res) => {
       results.push({
         input: testCase.input,
         expectedOutput: testCase.output,
-        actualOutput: result.output.join('\n'),
-        passed: result.output.join('\n').trim() === testCase.output.trim(),
+        actualOutput: result.output?.join('\n'),
+        passed: result.output?.join('\n')?.trim() === testCase.output?.trim(),
         executionTime: result.executionTime,
         success: result.success,
         errors: result.errors,
@@ -60,7 +60,7 @@ app.post('/api/execute', async (req, res) => {
     
     const allPassed = results.every(r => r.passed && r.success);
     const totalTime = results.reduce((sum, r) => sum + r.executionTime, 0);
-
+    console.log('Execution results:', results);
     res.json({
       allPassed,
       totalExecutionTime: totalTime,

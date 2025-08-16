@@ -5,7 +5,7 @@ import { AIService, type CodeAnalysisResponse } from '../services/aiService.js';
 import axios from 'axios';
 // import { SubmissionStatus } from '@prisma/client';
 import { wsService } from '../index.js';
-import { CodeTemplateService } from '../services/templateManagementService.js';
+import { CodeTemplateService, templateService } from '../services/templateManagementService.js';
 // import {
 //   ProblemQueryInput,
 //   ProblemListItem,
@@ -193,7 +193,7 @@ export const problemsRouter = router({
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Code template not found for this problem and language' });
         }
 
-        const templateService = new CodeTemplateService(ctx.prisma);
+        // const templateService = new CodeTemplateService();
         // Build the complete code with template
         const fullCode = templateService.buildFullScript(codeTemplate, code);
 
