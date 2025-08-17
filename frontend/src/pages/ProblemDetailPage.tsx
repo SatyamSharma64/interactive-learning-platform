@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { trpc } from '../lib/trpc';
 import { Button } from '../components/ui/button';
 import { CodeEditor } from '../components/features/MonacoCodeEditor';
@@ -19,7 +19,9 @@ import {
   BarChart3,
   Settings,
   Maximize2,
-  GripVertical
+  GripVertical,
+  X,
+  ArrowLeftFromLine
 } from 'lucide-react';
 import { set } from 'zod';
 
@@ -132,6 +134,7 @@ export const ProblemDetailPage: React.FC = () => {
   const [activeBottomTab, setActiveBottomTab] = useState<BottomPanelTab>('testcase');
   const [isBottomPanelExpanded, setIsBottomPanelExpanded] = useState(true);
   const [customTestInput, setCustomTestInput] = useState('');
+  const navigate = useNavigate();
 
   // Resizable panels
   const leftPanel = useResizable(window.innerWidth * 0.5, 300, window.innerWidth - 300);
@@ -412,21 +415,29 @@ export const ProblemDetailPage: React.FC = () => {
     </div>
   );
 
-  const renderVisualizer = () => (
-    <div className="h-full overflow-y-auto">
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Code Visualization</h2>
+  // **Modified: New fullscreen visualizer render function**
+  const renderFullscreenVisualizer = () => (
+    <div className="fixed inset-0 bg-slate-900 z-50 flex flex-col">
+      {/* **Added: Fullscreen visualizer header with close button** */}
+      <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-lg font-semibold text-white">Code Visualizer - {problem.title}</h1>
+          </div>
           <Button
-            onClick={toggleVisualizer}
+            onClick={() => setShowVisualizer(false)}
             variant="outline"
             size="sm"
             className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
           >
-            <Eye size={16} className="mr-2" />
+            <X size={16} className="mr-2" />
             Back to Description
           </Button>
         </div>
+      </div>
+      
+      {/* **Modified: Fullscreen visualizer content** */}
+      <div className="flex-1 overflow-y-auto p-4 bg-white">
         <CodeVisualizer
           problemId={problemId!}
           code={code}
@@ -436,6 +447,38 @@ export const ProblemDetailPage: React.FC = () => {
       </div>
     </div>
   );
+
+  // const renderVisualizer = () => (
+  //   <div className="h-full overflow-y-auto">
+  //     <div className="p-4">
+  //       <div className="flex items-center justify-between mb-4">
+  //         <div className="flex items-center space-x-4">
+  //           <h1 className="text-lg font-semibold text-white">Code Visualizer - {problem.title}</h1>
+  //         </div>
+  //         <Button
+  //           onClick={() => setShowVisualizer(false)}
+  //           variant="outline"
+  //           size="sm"
+  //           className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+  //         >
+  //           <X size={16} className="mr-2" />
+  //           Back to Description
+  //         </Button>
+  //       </div>
+  //       <CodeVisualizer
+  //         problemId={problemId!}
+  //         code={code}
+  //         languageId={selectedLanguage?.Id || 'lang1'}
+  //         input={customTestInput || ''}
+  //       />
+  //     </div>
+  //   </div>
+  // );
+
+  // **Added: Return fullscreen visualizer if showVisualizer is true**
+  if (showVisualizer) {
+    return renderFullscreenVisualizer();
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900 flex flex-col">
@@ -453,6 +496,15 @@ export const ProblemDetailPage: React.FC = () => {
               </div>
             )}
           </div>
+          <Button
+            onClick={() => navigate(-1)}
+            variant="outline"
+            size="sm"
+            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+          >
+            <ArrowLeftFromLine size={16} className="mr-2" />
+            Go Back
+          </Button>
         </div>
       </div>
 
@@ -495,8 +547,9 @@ export const ProblemDetailPage: React.FC = () => {
 
           {/* Tab Content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'description' && !showVisualizer && renderProblemDescription()}
-            {showVisualizer && renderVisualizer()}
+            {/* **Modified: Removed showVisualizer condition from this render section** */}
+            {/* {activeTab === 'description' && renderProblemDescription()} */}
+            {renderProblemDescription()}
           </div>
         </div>
 

@@ -87,7 +87,7 @@ except Exception as e:
 stdout_buffer = io.StringIO()
 stderr_buffer = io.StringIO()
 
-print("=== EXECUTION_START ===")
+# print("=== EXECUTION_START ===")
 
 try:
     with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
@@ -115,7 +115,7 @@ except Exception as e:
 captured_stdout = stdout_buffer.getvalue()
 captured_stderr = stderr_buffer.getvalue()
 
-print("=== EXECUTION_END ===")
+# print("=== EXECUTION_END ===")
 
 # Print captured output
 if captured_stdout:
@@ -141,11 +141,11 @@ except ImportError:
 except:
     memory_usage = 0
 
-print("=== DEBUG_INFO ===", file=sys.stderr)
-print(f"Execution time: {execution_time:.2f}ms", file=sys.stderr)
-print(f"Memory usage: {memory_usage:.2f}MB", file=sys.stderr)
-print(f"Success: {len(captured_stderr.strip()) == 0}", file=sys.stderr)
-print(f"Lines of code: ${codeLineCount}", file=sys.stderr)
+# print("=== DEBUG_INFO ===", file=sys.stderr)
+# print(f"Execution time: {execution_time:.2f}ms", file=sys.stderr)
+# print(f"Memory usage: {memory_usage:.2f}MB", file=sys.stderr)
+# print(f"Success: {len(captured_stderr.strip()) == 0}", file=sys.stderr)
+# print(f"Lines of code: ${codeLineCount}", file=sys.stderr)
 `;
   }
 

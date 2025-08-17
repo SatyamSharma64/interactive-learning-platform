@@ -65,6 +65,11 @@ export const LoginPage: React.FC = () => {
                 error={errors.password?.message}
                 />
             </div>
+            <div className='space-y-2 border bg-blue-50'>
+                <h1 className='text-gray-900 pl-1'>Demo Account:</h1>
+                <h2 className='text-gray-900 pl-3'>Email - john.doe@gmail.com</h2>
+                <h2 className='text-gray-900 pl-3'>Password - JohnDoe</h2>
+            </div>
 
             <div>
                 <Button
