@@ -7,7 +7,5 @@
     "backend"
   ],
   "devDependencies": {
-    "@trpc/server": "^11.4.4",
-    "@trpc/react-query": "^11.4.4"
   }
 }

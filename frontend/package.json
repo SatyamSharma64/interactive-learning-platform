@@ -17,6 +17,8 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.84.0",
+    "@trpc/react-query": "^11.4.4",
+    "@trpc/client": "^11.4.4",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
