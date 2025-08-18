@@ -1,5 +1,4 @@
 import axios from 'axios';
-import type { ExecutionResult } from '../../../shared/src/types.js';
 
 export interface TracingRequest {
   code: string;
