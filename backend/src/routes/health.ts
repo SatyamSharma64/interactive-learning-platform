@@ -1,12 +1,12 @@
-import express from 'express';
+import express, { type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 
 const router = express.Router();
 
-router.get('/health', async (req, res) => {
+router.get('/health', async (res: Response) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    
+
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),

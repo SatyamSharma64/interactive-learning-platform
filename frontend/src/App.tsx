@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, trpcClient } from './lib/trpc';
@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   // Initialize user from localStorage on app start
   useEffect(() => {

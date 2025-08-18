@@ -8,8 +8,6 @@ import { AIFeedback } from '../components/features/AIFeedback';
 import { CodeVisualizer } from '../components/features/CodeVisualizer';
 // import { useWebSocket } from '../hooks/useWebSocket';
 import { 
-  Eye, 
-  EyeOff, 
   Loader2, 
   ChevronDown, 
   ChevronUp, 
@@ -17,13 +15,10 @@ import {
   Send,
   Lightbulb,
   BarChart3,
-  Settings,
-  Maximize2,
   GripVertical,
   X,
   ArrowLeftFromLine
 } from 'lucide-react';
-import { set } from 'zod';
 
 type TabType = 'description' | 'editorial' | 'solutions' | 'submissions';
 type BottomPanelTab = 'testcase' | 'result' | 'hints' | 'feedback';
@@ -301,7 +296,7 @@ export const ProblemDetailPage: React.FC = () => {
   };
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLang = programmingLanguages?.find(lang => lang.name === event.target.value);
+    const selectedLang = programmingLanguages?.find((lang: any) => lang.name === event.target.value);
     if (selectedLang) {
       setSelectedLanguage(selectedLang);
       // Reset code when language changes

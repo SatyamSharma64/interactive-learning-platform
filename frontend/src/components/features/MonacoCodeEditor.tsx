@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 
@@ -40,6 +40,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [currentFontSize, setCurrentFontSize] = useState(fontSize);
 
+  console.log(height,theme);
   // Language mapping for Monaco Editor
   const getMonacoLanguage = (lang: string): string => {
     const languageMap: Record<string, string> = {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '../lib/trpc';
-import { CheckCircle, Circle, Clock, BookOpen } from 'lucide-react';
+import { CheckCircle, Circle, BookOpen } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export const TutorialDetailPage: React.FC = () => {
@@ -95,8 +95,8 @@ export const TutorialDetailPage: React.FC = () => {
               </div>
               
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                tutorial.difficultyLevel === 'BEGINNER' ? 'bg-green-100 text-green-800' :
-                tutorial.difficultyLevel === 'INTERMEDIATE' ? 'bg-yellow-100 text-yellow-800' :
+                tutorial.difficultyLevel === 'beginner' ? 'bg-green-100 text-green-800' :
+                tutorial.difficultyLevel === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-red-100 text-red-800'
               }`}>
                 {tutorial.difficultyLevel}

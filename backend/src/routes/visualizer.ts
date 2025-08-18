@@ -30,10 +30,10 @@ router.post('/trace', async (req, res) => {
       where: { id: languageId },
     });
 
-    const testCases = await prisma.testCase.findMany({
-      where: { problemId, isSample: true },
-      orderBy: { orderIndex: 'asc' },
-    });
+    // const testCases = await prisma.testCase.findMany({
+    //   where: { problemId, isSample: true },
+    //   orderBy: { orderIndex: 'asc' },
+    // });
 
     if (!codeTemplate) {
       return res.status(400).json({ code: 'NOT_FOUND', message: 'Code template not found for this problem and language' });

@@ -1,5 +1,4 @@
 // Template Management Service
-import { PrismaClient } from '@prisma/client';
 
 interface CodeTemplate {
   id: string;

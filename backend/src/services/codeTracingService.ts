@@ -208,7 +208,7 @@ print("TRACE_END")
         memoryLimit: 256,
       });
 
-      const { allPassed, totalExecutionTime, testResults } = executionResponse.data;
+      const { testResults } = executionResponse.data;
 
       console.log('Python tracing result:', executionResponse.data);
       if (!testResults || !Array.isArray(testResults) || testResults.length === 0) {
@@ -245,7 +245,7 @@ print("TRACE_END")
       
       if (startIndex === -1 || endIndex === -1) {
         console.log('Could not find trace markers in output');
-        return this.createFallbackSteps(code, 'Could not extract trace - markers not found');
+        return this.createFallbackSteps('Could not extract trace - markers not found');
       }
 
       // Extract the JSON between markers
@@ -257,7 +257,7 @@ print("TRACE_END")
       console.log('Extracted trace JSON:', traceJson);
 
       if (!traceJson) {
-        return this.createFallbackSteps(code, 'Empty trace data');
+        return this.createFallbackSteps('Empty trace data');
       }
 
       try {
@@ -265,7 +265,7 @@ print("TRACE_END")
         
         if (!Array.isArray(steps)) {
           console.log('Steps is not an array:', steps);
-          return this.createFallbackSteps(code, 'Invalid trace format');
+          return this.createFallbackSteps('Invalid trace format');
         }
 
         // Ensure step numbers are properly set
@@ -281,26 +281,26 @@ print("TRACE_END")
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         console.log('Failed to parse JSON:', traceJson.substring(0, 500));
-        return this.createFallbackSteps(code, `JSON parse error: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+        return this.createFallbackSteps(`JSON parse error: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
       }
 
     } catch (error) {
       console.error('Python tracing failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return this.createFallbackSteps(code, errorMessage);
+      return this.createFallbackSteps(errorMessage);
     }
   }
 
-  private escapeForPython(code: string): string {
-    return code
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, '\\n');
-  }
+  // private escapeForPython(code: string): string {
+  //   return code
+  //     .replace(/\\/g, '\\\\')
+  //     .replace(/"/g, '\\"')
+  //     .replace(/\n/g, '\\n');
+  // }
 
   private async traceJavaScriptExecution(code: string, input: string): Promise<ExecutionStep[]> {
     // Simplified JavaScript tracing
-    const cleanCode = code.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    // const cleanCode = code.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     const lines = code.split('\n');
     const steps: ExecutionStep[] = [];
 
@@ -329,7 +329,7 @@ print("TRACE_END")
         memoryLimit: 128,
       });
 
-      const { allPassed, totalExecutionTime, testResults } = executionResponse.data;
+      const { testResults } = executionResponse.data;
 
       console.log('Python tracing result:', executionResponse.data);
       if (!testResults || !Array.isArray(testResults) || testResults.length === 0) {
@@ -390,7 +390,7 @@ print("TRACE_END")
     return [];
   }
 
-  private createFallbackSteps(code: string, error: string): ExecutionStep[] {
+  private createFallbackSteps(error: string): ExecutionStep[] {
     return [{
       lineNumber: 1,
       variables: {},

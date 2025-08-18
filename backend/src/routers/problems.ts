@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc/trpc.js';
-import { AIService, type CodeAnalysisResponse } from '../services/aiService.js';
+import { AIService } from '../services/aiService.js';
 import axios from 'axios';
 // import { SubmissionStatus } from '@prisma/client';
 import { wsService } from '../index.js';
-import { CodeTemplateService, templateService } from '../services/templateManagementService.js';
+import { templateService } from '../services/templateManagementService.js';
 // import {
 //   ProblemQueryInput,
 //   ProblemListItem,
@@ -171,10 +171,10 @@ export const problemsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { code, languageId, problemId } = input;
-      const userId = ctx.userId;
+      // const userId = ctx.userId;
 
       // Emit execution started event
-      const requestId = `${userId}-${Date.now()}`;
+      // const requestId = `${userId}-${Date.now()}`;
       // wsService.emitExecutionStarted(userId, requestId);
       try {
         // Fetch code template if available

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, SkipForward, RotateCcw, Loader2, StepBack, FastForward, Bug, Variable, Eye } from 'lucide-react';
+import { Play, Pause, SkipForward, RotateCcw, Loader2, StepBack, Bug, Variable, Eye } from 'lucide-react';
 
 interface ExecutionStep {
   lineNumber: number;

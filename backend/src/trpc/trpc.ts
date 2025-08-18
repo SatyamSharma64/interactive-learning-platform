@@ -1,6 +1,5 @@
 import { TRPCError, initTRPC } from '@trpc/server';
 import type { Context } from './context.js';
-import type { AppUser } from '../types/index.js';
 
 const t = initTRPC.context<Context>().create();
 
