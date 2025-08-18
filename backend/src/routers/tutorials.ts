@@ -46,7 +46,7 @@ export const tutorialsRouter = router({
     getUserProgress: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .query(async ({ input, ctx }) => {
-      const userId = ctx.user.id;
+      const userId = ctx.userId;
       const { tutorialId } = input;
 
       // Get tutorial with all problems
@@ -122,7 +122,7 @@ export const tutorialsRouter = router({
   startTutorial: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const userId = ctx.user.id;
+      const userId = ctx.userId;
       const { tutorialId } = input;
 
       // Create or update tutorial progress

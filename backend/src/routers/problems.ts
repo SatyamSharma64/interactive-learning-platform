@@ -32,7 +32,7 @@ export const problemsRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const { search, difficulty, status, limit, offset } = input;
-      const userId = ctx.user.id;
+      const userId = ctx.userId;
 
       // Build where clause
       const whereClause: any = {};
@@ -171,7 +171,7 @@ export const problemsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { code, languageId, problemId } = input;
-      const userId = ctx.user.id;
+      const userId = ctx.userId;
 
       // Emit execution started event
       const requestId = `${userId}-${Date.now()}`;
@@ -206,7 +206,7 @@ export const problemsRouter = router({
           orderBy: { orderIndex: 'asc' },
         })
         // Send execution request to the execution service
-        const executionResponse = await axios.post('http://localhost:3001/api/execute', {
+        const executionResponse = await axios.post(`${process.env.EXECUTION_SERVICE_URL}/api/execute`, {
           code: fullCode,
           language: language?.name || 'python',
           testCases: testCases.map((tc: any) => ({
@@ -244,7 +244,7 @@ export const problemsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { problemId, code, languageId } = input;
-      const userId = ctx.user.id;
+      const userId = ctx.userId;
 
       const language = await ctx.prisma.programmingLanguage.findUnique({
         where: { id: languageId },
@@ -270,7 +270,7 @@ export const problemsRouter = router({
       try {
         wsService.emitExecutionProgress(userId, requestId, 'Running test cases...');
 
-        const executionResponse = await axios.post('http://localhost:3001/validate', {
+        const executionResponse = await axios.post(`${process.env.EXECUTION_SERVICE_URL}/api/validate`, {
           code,
           language: language?.name || 'python',
           testCases: problem.testCases.map((tc: any) => ({
@@ -340,7 +340,7 @@ export const problemsRouter = router({
       } catch (error: any) {
         const attempt = await ctx.prisma.userProblemAttempt.create({
           data: {
-            userId: ctx.user.id,
+            userId: ctx.userId,
             problemId: input.problemId,
             codeSubmission: input.code,
             languageId: input.languageId,
@@ -373,7 +373,7 @@ export const problemsRouter = router({
     .query(async ({ input, ctx }) => {
       const attemptCount = await ctx.prisma.userProblemAttempt.count({
         where: {
-          userId: ctx.user.id,
+          userId: ctx.userId,
           problemId: input.problemId,
         },
       });
@@ -387,7 +387,7 @@ export const problemsRouter = router({
     .query(async ({ input, ctx }) => {
       const attempts = await ctx.prisma.userProblemAttempt.findMany({
         where: {
-          userId: ctx.user.id,
+          userId: ctx.userId,
           problemId: input.problemId,
         },
         orderBy: { submittedAt: 'desc' },

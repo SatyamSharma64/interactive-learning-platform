@@ -9,13 +9,13 @@ export const publicProcedure = t.procedure;
 
 // Protected procedure with JWT auth
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  if (!ctx.user) {
+  if (!ctx.userId) {
     throw new TRPCError({ code: 'UNAUTHORIZED' });
   }
   return next({
     ctx: {
       ...ctx,
-      user: ctx.user as AppUser,
+      userId: ctx.userId as string,
     },
   });
 });

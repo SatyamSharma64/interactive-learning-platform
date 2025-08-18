@@ -3,7 +3,7 @@ import type { AttemptWithProblem } from '../types/index.js';
 
 export const dashboardRouter = router({
   getUserStats: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
+    const userId = ctx.userId;
 
     const [totalProblems, totalAttempts, successfulAttempts] = await Promise.all([
       ctx.prisma.problem.count(),
@@ -35,10 +35,13 @@ export const dashboardRouter = router({
 
   getRecentActivity: protectedProcedure.query(async ({ ctx }) => {
     const recentAttempts = await ctx.prisma.userProblemAttempt.findMany({
-      where: { userId: ctx.user.id },
+      where: { userId: ctx.userId },
       include: {
         problem: {
           select: { title: true, difficultyLevel: true },
+        },
+        language: {
+          select: { name: true },
         },
       },
       orderBy: { submittedAt: 'desc' },
@@ -53,7 +56,7 @@ export const dashboardRouter = router({
       difficulty: attempt.problem.difficultyLevel,
       timestamp: attempt.submittedAt,
       details: {
-        language: attempt.language,
+        language: attempt.language.name,
         testCasesPassed: attempt.testCasesPassed,
         totalTestCases: attempt.totalTestCases,
         attemptNumber: attempt.attemptNumber,

@@ -16,5 +16,8 @@ export type AttemptWithProblem = Prisma.UserProblemAttemptGetPayload<{
     problem: {
       select: { title: true; difficultyLevel: true };
     };
+    language: {
+      select: { name: true };
+    };
   };
 }>;

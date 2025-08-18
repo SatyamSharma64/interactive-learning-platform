@@ -198,7 +198,7 @@ print("TRACE_END")
 `;
 
     try {
-      const executionResponse = await axios.post('http://localhost:3001/api/execute', {
+      const executionResponse = await axios.post(`${process.env.EXECUTION_SERVICE_URL}/api/execute`, {
         code: tracingScript,
         language: 'python',
         testCases: [{
@@ -319,7 +319,7 @@ print("TRACE_END")
     });
 
     try {
-      const executionResponse = await axios.post('http://localhost:3001/execute', {
+      const executionResponse = await axios.post(`${process.env.EXECUTION_SERVICE_URL}/api/execute`, {
         code,
         language: 'javascript',
         testCases: [{

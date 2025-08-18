@@ -72,7 +72,7 @@ app.post('/api/execute', async (req, res) => {
   }
 });
 
-app.post('/validate', async (req, res) => {
+app.post('/api/validate', async (req, res) => {
   try {
     const { code, language, testCases } = req.body;
 

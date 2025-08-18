@@ -34,7 +34,7 @@ export const LoginPage: React.FC = () => {
         },
         onError: (error) => {
             console.error('Login failed:', error);
-            alert('Login failed. Please check your credentials and try again.');
+            alert('Login failed. Database server is the issue here. Please give it some time and try again after a minuter or 2.');
         },
     });
 

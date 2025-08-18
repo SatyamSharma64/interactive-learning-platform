@@ -83,6 +83,10 @@ export const authRouter = router({
     }),
 
   me: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.user;
+    const user = await ctx.prisma.user.findUnique({ 
+        where: { id: ctx.userId },
+        select: { id: true, email: true, username: true, firstName: true, lastName: true },
+      });
+    return user;
   }),
 });
