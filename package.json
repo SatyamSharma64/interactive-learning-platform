@@ -2,14 +2,17 @@
   "name": "@learning",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "build": "tsc -b"
-  },
   "workspaces": [
     "frontend",
     "backend",
     "shared"
   ],
+  "scripts": {
+    "build": "pnpm build:backend && pnpm build:shared && pnpm build:frontend",
+    "build:backend": "pnpm --filter backend build",
+    "build:shared": "pnpm --filter shared build",
+    "build:frontend": "pnpm --filter frontend build"
+  },
   "devDependencies": {
   }
 }
