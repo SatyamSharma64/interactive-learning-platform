@@ -3,14 +3,14 @@ import { verifyAccessToken } from '../utils/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { type Request, type Response } from 'express';
 
-export interface Context {
+export interface Ctxt {
   req: Request;
   res: Response;
   userId: string | null;
   prisma: typeof prisma;
 }
 
-export const createContext = async ({ req, res }: CreateExpressContextOptions): Promise<Context> => {
+export const createContext = async ({ req, res }: CreateExpressContextOptions): Promise<Ctxt> => {
   const token = req.headers.authorization?.split(' ')[1];
   let userId: string | null = null;
   if (token) {
@@ -27,4 +27,4 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions): 
   return { req, res, userId, prisma };
 };
 
-// export type Context = Awaited<ReturnType<typeof createContext>>;
+export type Context = Awaited<ReturnType<typeof createContext>>;

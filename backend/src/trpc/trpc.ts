@@ -17,4 +17,4 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       userId: ctx.userId as string,
     },
   });
-});
+}) satisfies typeof t.procedure;;
