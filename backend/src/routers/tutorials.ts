@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc/trpc.js';
+import { TRPCError } from '@trpc/server';
 
 export const tutorialsRouter: ReturnType<typeof router> = router({
   getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -46,6 +47,13 @@ export const tutorialsRouter: ReturnType<typeof router> = router({
     getUserProgress: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .query(async ({ input, ctx }) => {
+      if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
+    
       const userId = ctx.userId;
       const { tutorialId } = input;
 
@@ -122,6 +130,13 @@ export const tutorialsRouter: ReturnType<typeof router> = router({
   startTutorial: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
+    
       const userId = ctx.userId;
       const { tutorialId } = input;
 

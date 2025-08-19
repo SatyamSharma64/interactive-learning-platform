@@ -83,6 +83,12 @@ export const authRouter: ReturnType<typeof router> = router({
     }),
 
   me: protectedProcedure.query(async ({ ctx }) => {
+    if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
     const user = await ctx.prisma.user.findUnique({ 
         where: { id: ctx.userId },
         select: { id: true, email: true, username: true, firstName: true, lastName: true },

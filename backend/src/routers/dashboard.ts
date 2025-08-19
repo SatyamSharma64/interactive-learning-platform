@@ -1,8 +1,16 @@
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc/trpc.js';
 import type { AttemptWithProblem } from '../types/index.js';
 
 export const dashboardRouter: ReturnType<typeof router> = router({
   getUserStats: protectedProcedure.query(async ({ ctx }) => {
+    if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
+    
     const userId = ctx.userId;
 
     const [totalProblems, totalAttempts, successfulAttempts] = await Promise.all([
@@ -34,6 +42,13 @@ export const dashboardRouter: ReturnType<typeof router> = router({
   }),
 
   getRecentActivity: protectedProcedure.query(async ({ ctx }) => {
+    if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
+    
     const recentAttempts = await ctx.prisma.userProblemAttempt.findMany({
       where: { userId: ctx.userId },
       include: {
