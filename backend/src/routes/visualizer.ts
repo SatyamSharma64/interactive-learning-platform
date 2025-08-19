@@ -1,11 +1,11 @@
-import express from 'express';
+import express, { Router, type Request, type Response } from 'express';
 import { tracingService } from '../services/codeTracingService.js';
 import { prisma } from '../lib/prisma.js';
 import { templateService } from '../services/templateManagementService.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 
-router.post('/trace', async (req, res) => {
+router.post('/trace', async (req: Request, res: Response) => {
   try {
     const { problemId, code, languageId, input = '' } = req.body;
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc/trpc.js';
 
-export const tutorialsRouter = router({
+export const tutorialsRouter: ReturnType<typeof router> = router({
   getAll: protectedProcedure.query(async ({ ctx }) => {
     return await ctx.prisma.tutorial.findMany({
       where: { isPublished: true },

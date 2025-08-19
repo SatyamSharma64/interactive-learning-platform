@@ -21,7 +21,7 @@ const aiService = new AIService();
 //   status: SubmissionStatus | null;
 // }
 
-export const problemsRouter = router({
+export const problemsRouter: ReturnType<typeof router> = router({
   getAll: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
