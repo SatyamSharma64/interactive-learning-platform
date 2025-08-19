@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from '../trpc/trpc.js';
 import type { AttemptWithProblem } from '../types/index.js';
 
-export const dashboardRouter = router({
+export const dashboardRouter: ReturnType<typeof router> = router({
   getUserStats: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.userId;
 

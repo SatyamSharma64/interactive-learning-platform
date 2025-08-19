@@ -5,7 +5,7 @@ import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure } from '../trpc/trpc.js';
 import { generateSalt, generateTokens, hashPassword } from '../utils/auth.js';
 
-export const authRouter = router({
+export const authRouter: ReturnType<typeof router> = router({
   register: publicProcedure
     .input(z.object({
       email: z.string().email(),
