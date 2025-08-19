@@ -1,5 +1,5 @@
 {
-  "name": "learning-platform-backend",
+  "name": "@learning/backend",
   "version": "1.0.0",
   "type": "module",
   "description": "Interactive Learning Platform Backend",

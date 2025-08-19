@@ -14,4 +14,7 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
+  "references": [
+    { "path": "../backend" } 
+  ]
 }

@@ -7,7 +7,7 @@ import {
   UserProblemAttempt as PrismaUserProblemAttempt,
   UserTutorialProgress as PrismaUserTutorialProgress,
   DifficultyLevel,
-  AttemptStatus,
+  SubmissionStatus,
   ProgressStatus
 } from '@prisma/client';
 
@@ -21,7 +21,7 @@ export type UserProblemAttempt = PrismaUserProblemAttempt;
 export type UserTutorialProgress = PrismaUserTutorialProgress;
 
 // Export enums
-export { DifficultyLevel, AttemptStatus, ProgressStatus };
+export { DifficultyLevel, SubmissionStatus, ProgressStatus };
 
 // API Response wrapper
 export interface ApiResponse<T> {
@@ -176,7 +176,7 @@ export interface ActivityItem {
   id: string;
   type: 'problem_attempt';
   title: string;
-  status: AttemptStatus;
+  status: SubmissionStatus;
   difficulty: DifficultyLevel;
   timestamp: Date;
   details: {

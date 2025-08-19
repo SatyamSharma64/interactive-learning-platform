@@ -1,5 +1,11 @@
 {
   "files": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/backend/*": ["backend/dist/*"] 
+    }
+  },
   "references": [
     { "path": "./shared" },
     { "path": "./backend" },

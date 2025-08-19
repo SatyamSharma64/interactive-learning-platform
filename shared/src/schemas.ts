@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DifficultyLevel, AttemptStatus, ProgressStatus } from './types.js';
+import { DifficultyLevel, SubmissionStatus, ProgressStatus } from './types.js';
 
 // Authentication Schemas
 export const loginSchema = z.object({
