@@ -3,9 +3,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@repo/backend/*": ["backend/dist/*"] 
+      "@learning/*": ["./*/src"]
     }
   },
+  "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "./shared" },
     { "path": "./backend" },
