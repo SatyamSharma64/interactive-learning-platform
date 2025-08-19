@@ -41,7 +41,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "composite": true, 
-    "declaration": true
   },
   "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]
