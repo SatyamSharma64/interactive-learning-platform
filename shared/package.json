@@ -9,6 +9,16 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@learning/backend": "workspace:*"
+    "@learning/backend": "workspace:*",
+    "@prisma/client": "^6.13.0",
+    "@trpc/server": "^11.4.4",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
   }
 }
