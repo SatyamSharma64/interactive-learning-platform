@@ -4,7 +4,7 @@ import { problemsRouter } from './problems.js';
 import { dashboardRouter } from './dashboard.js';
 import { tutorialsRouter } from './tutorials.js';
 
-export const appRouter: ReturnType<typeof router> = router({
+export const appRouter = router({
   auth: authRouter,
   problems: problemsRouter,
   dashboard: dashboardRouter,

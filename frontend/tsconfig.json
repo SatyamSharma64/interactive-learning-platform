@@ -1,7 +1,18 @@
 {
   "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": "src",                   
+    "baseUrl": ".",
+    "paths": {
+      "@learning/shared": ["../shared/src"],
+      // "@learning/backend": ["../backend/src"] 
+    }
+  },
   "references": [
     { "path": "../shared" },
+    // { "path": "../backend" },
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
