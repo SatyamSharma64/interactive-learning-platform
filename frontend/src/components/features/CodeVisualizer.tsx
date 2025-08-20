@@ -40,7 +40,7 @@ export const CodeVisualizer: React.FC<CodeVisualizerProps> = ({
   const generateExecutionSteps = async () => {
     setIsGeneratingSteps(true);
     try {
-      const response = await fetch('/api/visualizer/trace', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/visualizer/trace`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

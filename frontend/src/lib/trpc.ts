@@ -39,7 +39,7 @@ export const trpcClient = trpc.createClient({
   links: [
     errorLink(), // Add this first so it catches errors
     httpBatchLink({
-      url: '/trpc',
+      url: `${import.meta.env.VITE_API_URL}/trpc`,
       headers() {
         const token = localStorage.getItem('auth-token');
         return {
