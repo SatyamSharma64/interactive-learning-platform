@@ -21,16 +21,16 @@ export default defineConfig({
     proxy: {
       '/trpc': {
         target: process.env.VITE_API_URL,
-        changeOrigin: true,
+        // changeOrigin: true,
       },
       '/api': {
         target: process.env.VITE_API_URL,
-        changeOrigin: true,
+        // changeOrigin: true,
       },
       '/ws': {
         target: process.env.VITE_API_URL,
         ws: true,
-        changeOrigin: true,
+        // changeOrigin: true,
       },
     },
   }
