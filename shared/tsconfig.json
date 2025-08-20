@@ -1,4 +1,5 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
     "composite": true,                // Required for project references
     "declaration": true,              // Emits .d.ts files for type sharing
@@ -13,5 +14,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*"]
 }
