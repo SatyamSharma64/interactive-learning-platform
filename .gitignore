@@ -6,10 +6,6 @@ generated
 
 tsconfig.tsbuildinfo
 
-*.d.ts
-*.d.js
-*.js
-*.tsbuildinfo
 # Logs
 logs
 *.log

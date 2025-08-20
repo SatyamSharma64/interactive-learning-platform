@@ -1,12 +1,5 @@
 {
   "files": [],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@learning/*": ["./*/src"]
-    }
-  },
-  "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "./shared" },
     { "path": "./backend" },

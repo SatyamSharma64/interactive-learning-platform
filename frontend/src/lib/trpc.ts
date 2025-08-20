@@ -1,7 +1,7 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { httpBatchLink, TRPCClientError, type TRPCLink } from '@trpc/client';
 import { observable } from '@trpc/server/observable';
-import type { AppRouter } from '../../../backend/src/routers/index';
+import type { AppRouter } from '../../../backend/src/routers/index.js';
 import { useAuthStore } from '@/store/authStore.js';
 
 export const trpc = createTRPCReact<AppRouter>();
