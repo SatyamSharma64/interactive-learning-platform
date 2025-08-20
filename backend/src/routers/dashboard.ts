@@ -1,4 +1,3 @@
-import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc/trpc.js';
 import type { AttemptWithProblem } from '../types/index.js';
 

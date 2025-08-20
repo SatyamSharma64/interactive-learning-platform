@@ -42,6 +42,10 @@
     "skipLibCheck": true,
     "composite": true, 
   },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  },
   "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]
 }

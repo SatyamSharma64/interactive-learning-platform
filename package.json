@@ -3,16 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "frontend",
+    "shared",
     "backend",
-    "shared"
+    "frontend"
   ],
   "scripts": {
-    "build": "pnpm build:backend && pnpm build:shared && pnpm build:frontend",
-    "build:backend": "pnpm --filter backend build",
-    "build:shared": "pnpm --filter shared build",
-    "build:frontend": "pnpm --filter frontend build"
+    "build": "npm run build --workspace backend && npm run build --workspace frontend"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {  }
 }

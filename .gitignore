@@ -2,7 +2,13 @@ node_modules
 .env
 dist
 migrations
+generated
 
+
+*.d.ts
+*.d.js
+*.js
+*.tsbuildinfo
 # Logs
 logs
 *.log

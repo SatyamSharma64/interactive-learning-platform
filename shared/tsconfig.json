@@ -14,8 +14,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "references": [
-    { "path": "../backend" } 
-  ]
+  "include": ["src/**/*"]
 }

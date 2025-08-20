@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc/trpc.js';
-import { TRPCError } from '@trpc/server';
 
 export const tutorialsRouter = router({
   getAll: protectedProcedure.query(async ({ ctx }) => {
