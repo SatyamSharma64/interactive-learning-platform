@@ -1,19 +1,13 @@
 {
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "composite": true,
-    "importsNotUsedAsValues": "error",
-    "preserveValueImports": true,
-    "outDir": "dist",
-    "rootDir": "src",                   
-    "baseUrl": ".",
-    // "paths": {
-    //   "@learning/shared": ["../shared/src"],
-    // }
-  },
+  "files": [],
   "references": [
-    // { "path": "../shared" },
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }
