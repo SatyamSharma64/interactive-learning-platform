@@ -31,13 +31,7 @@ export const problemsRouter = router({
       offset: z.number().min(0).default(0),
     }))
     .query(async ({ input, ctx }) => {
-      if(!ctx.userId){
-      throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'UserId does not exists',
-        });
-    }
-
+      
       const { search, difficulty, status, limit, offset } = input;
       const userId = ctx.userId;
 
@@ -250,13 +244,7 @@ export const problemsRouter = router({
       languageId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if(!ctx.userId){
-      throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'UserId does not exists',
-        });
-    }
-
+     
       const { problemId, code, languageId } = input;
       const userId = ctx.userId;
 
@@ -385,13 +373,7 @@ export const problemsRouter = router({
   getHint: protectedProcedure
     .input(z.object({ problemId: z.string() }))
     .query(async ({ input, ctx }) => {
-      if(!ctx.userId){
-            throw new TRPCError({
-                code: 'UNAUTHORIZED',
-                message: 'UserId does not exists',
-              });
-          }
-          
+                
       const attemptCount = await ctx.prisma.userProblemAttempt.count({
         where: {
           userId: ctx.userId,

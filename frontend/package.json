@@ -7,12 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "clean": "rimraf --glob dist src/**/*.d.ts src/**/*.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
-    "@learning/shared": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-slot": "^1.2.3",

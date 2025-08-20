@@ -47,13 +47,7 @@ export const tutorialsRouter = router({
     getUserProgress: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .query(async ({ input, ctx }) => {
-      if(!ctx.userId){
-      throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'UserId does not exists',
-        });
-    }
-    
+          
       const userId = ctx.userId;
       const { tutorialId } = input;
 
@@ -130,13 +124,7 @@ export const tutorialsRouter = router({
   startTutorial: protectedProcedure
     .input(z.object({ tutorialId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      if(!ctx.userId){
-      throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'UserId does not exists',
-        });
-    }
-    
+          
       const userId = ctx.userId;
       const { tutorialId } = input;
 
