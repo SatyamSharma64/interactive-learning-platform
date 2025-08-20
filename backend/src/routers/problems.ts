@@ -31,6 +31,7 @@ export const problemsRouter = router({
       offset: z.number().min(0).default(0),
     }))
     .query(async ({ input, ctx }) => {
+      
       const { search, difficulty, status, limit, offset } = input;
       const userId = ctx.userId;
 
@@ -243,6 +244,7 @@ export const problemsRouter = router({
       languageId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+     
       const { problemId, code, languageId } = input;
       const userId = ctx.userId;
 
@@ -371,6 +373,7 @@ export const problemsRouter = router({
   getHint: protectedProcedure
     .input(z.object({ problemId: z.string() }))
     .query(async ({ input, ctx }) => {
+                
       const attemptCount = await ctx.prisma.userProblemAttempt.count({
         where: {
           userId: ctx.userId,
@@ -385,6 +388,13 @@ export const problemsRouter = router({
   getUserProgress: protectedProcedure
     .input(z.object({ problemId: z.string() }))
     .query(async ({ input, ctx }) => {
+      if(!ctx.userId){
+      throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'UserId does not exists',
+        });
+    }
+
       const attempts = await ctx.prisma.userProblemAttempt.findMany({
         where: {
           userId: ctx.userId,

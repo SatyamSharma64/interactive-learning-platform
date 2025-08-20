@@ -1,9 +1,9 @@
-import express, { type Response } from 'express';
+import express, { Router, type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 
-router.get('/health', async (res: Response) => {
+router.get('/health', async (res: Response): Promise<void> => {
   try {
     await prisma.$queryRaw`SELECT 1`;
 
